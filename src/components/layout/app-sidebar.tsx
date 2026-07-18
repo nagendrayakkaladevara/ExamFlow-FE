@@ -3,6 +3,7 @@ import { GraduationCap, KeyRound } from 'lucide-react'
 
 import { APP_NAME } from '@/config/constants'
 import { getNavItemsForRole } from '@/config/navigation'
+import type { UserRole } from '@/types/enums'
 import { useAuthStore } from '@/features/auth/store'
 import {
   Sidebar,
@@ -16,6 +17,17 @@ import {
 import { NavMain } from '@/components/layout/nav-main'
 import { NavSecondary } from '@/components/layout/nav-secondary'
 import { NavUser } from '@/components/layout/nav-user'
+
+function getQuickCreateHref(role: UserRole): string {
+  switch (role) {
+    case 'ADMIN':
+      return '/admin/users'
+    case 'LECTURER':
+      return '/lecturer/questions'
+    case 'STUDENT':
+      return '/student/assignments'
+  }
+}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAuthStore((s) => s.user)
@@ -59,7 +71,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navItems} />
+        <NavMain items={navItems} quickCreateHref={getQuickCreateHref(user.role)} />
         <NavSecondary items={secondaryItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
