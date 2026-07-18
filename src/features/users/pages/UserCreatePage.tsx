@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { StudentBulkImport } from '@/features/users/components/StudentBulkImport'
 import { usersApi } from '@/features/users/api'
 import { isApiError } from '@/lib/errors'
 
@@ -30,7 +32,7 @@ const createUserSchema = z.object({
 
 type CreateUserValues = z.infer<typeof createUserSchema>
 
-export function UserCreatePage() {
+function SingleUserForm() {
   const navigate = useNavigate()
   const form = useForm<CreateUserValues>({
     resolver: zodResolver(createUserSchema),
@@ -55,48 +57,19 @@ export function UserCreatePage() {
   })
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <PageHeader title="Add user" description="Create a lecturer or student account." />
-      <Card>
-        <CardContent className="pt-6">
-          <Form {...form}>
-            <form className="space-y-4" onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+    <Card>
+      <CardContent className="pt-6">
+        <Form {...form}>
+          <form className="space-y-4" onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="email"
+                name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>First name</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -104,48 +77,105 @@ export function UserCreatePage() {
               />
               <FormField
                 control={form.control}
-                name="role"
+                name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Role</FormLabel>
+                    <FormLabel>Last name</FormLabel>
                     <FormControl>
-                      <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                        {...field}
-                      >
-                        <option value="LECTURER">Lecturer</option>
-                        <option value="STUDENT">Student</option>
-                      </select>
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <PasswordInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex gap-2">
-                <Button type="submit" disabled={mutation.isPending}>
-                  Create user
-                </Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link to="/admin/users">Cancel</Link>
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </div>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <FormControl>
+                    <select
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                      {...field}
+                    >
+                      <option value="LECTURER">Lecturer</option>
+                      <option value="STUDENT">Student</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <PasswordInput {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex gap-2">
+              <Button type="submit" disabled={mutation.isPending}>
+                Create user
+              </Button>
+              <Button type="button" variant="outline" asChild>
+                <Link to="/admin/users">Cancel</Link>
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function UserCreatePage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') === 'bulk' ? 'bulk' : 'single'
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        title="Add user"
+        description="Create one account or import many students from Excel."
+      />
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setSearchParams(value === 'bulk' ? { tab: 'bulk' } : {})
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="single">Single user</TabsTrigger>
+          <TabsTrigger value="bulk">Bulk import students</TabsTrigger>
+        </TabsList>
+        <TabsContent value="single">
+          <SingleUserForm />
+        </TabsContent>
+        <TabsContent value="bulk">
+          <StudentBulkImport />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

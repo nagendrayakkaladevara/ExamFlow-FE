@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -38,12 +38,20 @@ export function UsersListPage() {
         title="Users"
         description="Create and manage lecturer and student accounts."
         actions={
-          <Button asChild>
-            <Link to="/admin/users/new">
-              <Plus className="size-4" />
-              Add user
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/admin/users/new?tab=bulk">
+                <Upload className="size-4" />
+                Import students
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/admin/users/new">
+                <Plus className="size-4" />
+                Add user
+              </Link>
+            </Button>
+          </div>
         }
       />
 

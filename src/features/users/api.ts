@@ -17,6 +17,25 @@ export interface CreateUserInput {
   lastName: string
 }
 
+export interface BulkCreateStudentInput {
+  firstName: string
+  lastName: string
+  email: string
+  password?: string
+}
+
+export interface BulkImportResult {
+  summary: {
+    total: number
+    created: number
+    failed: number
+  }
+  results: Array<
+    | { row: number; status: 'created'; user: PublicUser }
+    | { row: number; status: 'failed'; email: string; message: string }
+  >
+}
+
 export interface UpdateUserInput {
   email?: string
   firstName?: string
@@ -34,6 +53,9 @@ export const usersApi = {
   get: (id: string) => api.get<PublicUser>(`/users/${id}`),
 
   create: (body: CreateUserInput) => api.post<PublicUser>('/users', body),
+
+  bulkCreate: (body: { students: BulkCreateStudentInput[]; defaultPassword?: string }) =>
+    api.post<BulkImportResult>('/users/bulk', body),
 
   update: (id: string, body: UpdateUserInput) =>
     api.patch<PublicUser>(`/users/${id}`, body),
