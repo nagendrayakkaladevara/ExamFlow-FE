@@ -6,7 +6,6 @@ import {
   GraduationCap,
   LayoutDashboard,
   Megaphone,
-  Tags,
   Users,
   Vote,
 } from 'lucide-react'
@@ -39,12 +38,6 @@ export const navigationItems: NavItem[] = [
     roles: ['ADMIN'],
   },
   {
-    title: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3,
-    roles: ['ADMIN'],
-  },
-  {
     title: 'Circulars',
     href: '/admin/circulars',
     icon: Megaphone,
@@ -54,6 +47,12 @@ export const navigationItems: NavItem[] = [
     title: 'Polls',
     href: '/admin/polls',
     icon: Vote,
+    roles: ['ADMIN'],
+  },
+  {
+    title: 'Analytics',
+    href: '/admin/analytics',
+    icon: BarChart3,
     roles: ['ADMIN'],
   },
   {
@@ -69,21 +68,9 @@ export const navigationItems: NavItem[] = [
     roles: ['LECTURER'],
   },
   {
-    title: 'Tags',
-    href: '/lecturer/tags',
-    icon: Tags,
-    roles: ['LECTURER'],
-  },
-  {
     title: 'Assignments',
     href: '/lecturer/assignments',
     icon: ClipboardList,
-    roles: ['LECTURER'],
-  },
-  {
-    title: 'Analytics',
-    href: '/lecturer/analytics',
-    icon: BarChart3,
     roles: ['LECTURER'],
   },
   {
@@ -96,6 +83,12 @@ export const navigationItems: NavItem[] = [
     title: 'Polls',
     href: '/lecturer/polls',
     icon: Vote,
+    roles: ['LECTURER'],
+  },
+  {
+    title: 'Analytics',
+    href: '/lecturer/analytics',
+    icon: BarChart3,
     roles: ['LECTURER'],
   },
   {
@@ -120,6 +113,12 @@ export const navigationItems: NavItem[] = [
     title: 'Polls',
     href: '/student/polls',
     icon: Vote,
+    roles: ['STUDENT'],
+  },
+  {
+    title: 'My Performance',
+    href: '/student/analytics',
+    icon: BarChart3,
     roles: ['STUDENT'],
   },
 ]

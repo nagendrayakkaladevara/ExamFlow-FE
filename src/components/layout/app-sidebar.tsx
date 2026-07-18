@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { GraduationCap, KeyRound } from 'lucide-react'
+import { GraduationCap } from 'lucide-react'
 
 import { APP_NAME } from '@/config/constants'
 import { getNavItemsForRole } from '@/config/navigation'
@@ -15,15 +15,14 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { NavMain } from '@/components/layout/nav-main'
-import { NavSecondary } from '@/components/layout/nav-secondary'
 import { NavUser } from '@/components/layout/nav-user'
 
 function getQuickCreateHref(role: UserRole): string {
   switch (role) {
     case 'ADMIN':
-      return '/admin/users'
+      return '/admin/users/new'
     case 'LECTURER':
-      return '/lecturer/questions'
+      return '/lecturer/questions/new'
     case 'STUDENT':
       return '/student/assignments'
   }
@@ -45,14 +44,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         location.pathname.startsWith(item.href)),
   }))
 
-  const secondaryItems = [
-    {
-      title: 'Change password',
-      href: '/account/password',
-      icon: KeyRound,
-    },
-  ]
-
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -72,7 +63,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navItems} quickCreateHref={getQuickCreateHref(user.role)} />
-        <NavSecondary items={secondaryItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

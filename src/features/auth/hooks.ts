@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { authApi } from '@/features/auth/api'
 import { useAuthStore } from '@/features/auth/store'
-import type { LoginFormValues } from '@/features/auth/schemas'
+import type { ChangePasswordFormValues, LoginFormValues } from '@/features/auth/schemas'
 import { getRoleHomePath, sanitizeReturnPath } from '@/lib/api-client'
 import { isApiError } from '@/lib/errors'
 import { queryKeys } from '@/config/query-keys'
@@ -62,6 +62,27 @@ export function useLogoutMutation() {
       clearSession()
       queryClient.clear()
       navigate('/login')
+    },
+  })
+}
+
+export function useChangePasswordMutation() {
+  const navigate = useNavigate()
+  const clearSession = useAuthStore((s) => s.clearSession)
+
+  return useMutation({
+    mutationFn: (values: ChangePasswordFormValues) =>
+      authApi.changePassword({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+      }),
+    onSuccess: () => {
+      clearSession()
+      toast.success('Password updated. Please sign in again.')
+      navigate('/login')
+    },
+    onError: (error) => {
+      toast.error(isApiError(error) ? error.message : 'Unable to change password.')
     },
   })
 }
