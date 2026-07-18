@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import { AuthGuard, GuestGuard } from '@/components/guards/AuthGuard'
 import { RoleGuard } from '@/components/guards/RoleGuard'
 import { AppShell, ExamLayout, PublicLayout } from '@/components/layout/AppShell'

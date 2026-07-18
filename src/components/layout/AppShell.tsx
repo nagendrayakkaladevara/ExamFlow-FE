@@ -161,7 +161,7 @@ export function ExamLayout() {
 
 export function PublicLayout() {
   return (
-    <div className="min-h-svh bg-muted/30">
+    <div className="min-h-svh">
       <Outlet />
     </div>
   )
