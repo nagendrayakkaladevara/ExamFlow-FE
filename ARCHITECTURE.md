@@ -675,7 +675,7 @@ Checklist when adding a module:
 
 | Variable | Purpose | Example |
 | --- | --- | --- |
-| `VITE_API_BASE_URL` | API origin | `https://api.example.com` |
+| `VITE_API_BASE_URL` | API origin | `https://exam-flow-be.vercel.app` |
 
 `.env.example`:
 

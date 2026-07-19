@@ -39,12 +39,13 @@ This document describes every public API endpoint the frontend should call. It c
 | Environment | Base URL |
 |-------------|----------|
 | Local dev | `http://localhost:3000` |
+| Production | `https://exam-flow-be.vercel.app` |
 | API prefix | `/api/v1` |
 | Health check | `/healthz` (no `/api/v1` prefix) |
 
 **Full local API root:** `http://localhost:3000/api/v1`
 
-**Production:** Use your deployed Vercel API URL (same path structure).
+**Full production API root:** `https://exam-flow-be.vercel.app/api/v1`
 
 ---
 
