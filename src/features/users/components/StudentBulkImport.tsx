@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Download, FileSpreadsheet, Upload } from 'lucide-react'
+import { Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
+import { Separator } from '@/components/ui/separator'
 import {
   Table,
   TableBody,
@@ -24,6 +24,28 @@ import {
 import { isApiError } from '@/lib/errors'
 
 const MAX_ROWS = 200
+
+function ImportSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="space-y-1">
+        <h2 className="text-base font-semibold">{title}</h2>
+        {description ? (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  )
+}
 
 export function StudentBulkImport() {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -87,82 +109,95 @@ export function StudentBulkImport() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <div className="rounded-lg border border-dashed p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium">Upload Excel file</p>
-                <p className="text-sm text-muted-foreground">
-                  Required columns: firstName, lastName, email. Password is optional if you set a
-                  default below.
+      <div className="rounded-lg border bg-background">
+        <div className="space-y-8 p-6">
+          <ImportSection
+            title="Upload spreadsheet"
+            description="Import up to 200 student accounts from an Excel file."
+          >
+            <div className="rounded-lg border border-dashed p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Required columns</p>
+                  <p className="text-sm text-muted-foreground">
+                    firstName, lastName, email. Password is optional if you set a default below.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={downloadStudentImportTemplate}>
+                    <Download className="size-4" />
+                    Download template
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="size-4" />
+                    Choose file
+                  </Button>
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  void handleFileChange(file)
+                  event.target.value = ''
+                }}
+              />
+              {fileName ? (
+                <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileSpreadsheet className="size-4" />
+                  {fileName}
                 </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={downloadStudentImportTemplate}>
-                  <Download className="size-4" />
-                  Download template
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="size-4" />
-                  Choose file
-                </Button>
-              </div>
+              ) : null}
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null
-                void handleFileChange(file)
-                event.target.value = ''
-              }}
-            />
-            {fileName ? (
-              <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                <FileSpreadsheet className="size-4" />
-                {fileName}
-              </p>
-            ) : null}
-          </div>
+          </ImportSection>
 
-          <div className="space-y-2">
-            <Label htmlFor="defaultPassword">Default password (optional)</Label>
-            <PasswordInput
-              id="defaultPassword"
-              value={defaultPassword}
-              onChange={(event) => setDefaultPassword(event.target.value)}
-              placeholder="Used when a row has no password column"
-            />
-            <p className="text-xs text-muted-foreground">
-              {rowsMissingPassword > 0
-                ? `${rowsMissingPassword} row(s) need this default password.`
-                : 'Leave blank if every row includes its own password.'}
-            </p>
-          </div>
+          <Separator />
+
+          <ImportSection
+            title="Default password"
+            description="Applied to rows that do not include a password column."
+          >
+            <div className="space-y-2">
+              <Label htmlFor="defaultPassword">Default password</Label>
+              <PasswordInput
+                id="defaultPassword"
+                value={defaultPassword}
+                onChange={(event) => setDefaultPassword(event.target.value)}
+                placeholder="At least 8 characters"
+              />
+              <p className="text-xs text-muted-foreground">
+                {rowsMissingPassword > 0
+                  ? `${rowsMissingPassword} row(s) need this default password.`
+                  : 'Leave blank if every row includes its own password.'}
+              </p>
+            </div>
+          </ImportSection>
 
           {parseErrors.length > 0 ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              <ul className="list-disc space-y-1 pl-5">
-                {parseErrors.map((error) => (
-                  <li key={error}>{error}</li>
-                ))}
-              </ul>
-            </div>
+            <>
+              <Separator />
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+                <p className="font-medium">Fix these issues before importing</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {parseErrors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
 
-      {rows.length > 0 ? (
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <div className="flex items-center justify-between gap-2">
+        {rows.length > 0 ? (
+          <div className="border-t bg-muted/20 px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">
                 Previewing {rows.length} student{rows.length === 1 ? '' : 's'}
               </p>
@@ -171,87 +206,90 @@ export function StudentBulkImport() {
                 disabled={!canImport || mutation.isPending}
                 onClick={() => mutation.mutate()}
               >
-                Import students
+                {mutation.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Importing…
+                  </>
+                ) : (
+                  'Import students'
+                )}
               </Button>
             </div>
-            <div className="max-h-80 overflow-auto rounded-lg border">
+          </div>
+        ) : null}
+      </div>
+
+      {rows.length > 0 ? (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Row</TableHead>
+                <TableHead>First name</TableHead>
+                <TableHead>Last name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Password</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.row}>
+                  <TableCell>{row.row}</TableCell>
+                  <TableCell>{row.firstName}</TableCell>
+                  <TableCell>{row.lastName}</TableCell>
+                  <TableCell>{row.email}</TableCell>
+                  <TableCell>{row.password ? 'Provided' : 'Default'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : null}
+
+      {importResult ? (
+        <div className="rounded-lg border bg-background p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">Import complete</h2>
+              <p className="text-sm text-muted-foreground">
+                Created {importResult.summary.created}, failed {importResult.summary.failed} of{' '}
+                {importResult.summary.total}.
+              </p>
+            </div>
+            <Button type="button" variant="outline" asChild>
+              <Link to="/admin/users">View users</Link>
+            </Button>
+          </div>
+
+          {importResult.results.some((result) => result.status === 'failed') ? (
+            <div className="mt-6 max-h-64 overflow-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Row</TableHead>
-                    <TableHead>First name</TableHead>
-                    <TableHead>Last name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Password</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Message</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.row}>
-                      <TableCell>{row.row}</TableCell>
-                      <TableCell>{row.firstName}</TableCell>
-                      <TableCell>{row.lastName}</TableCell>
-                      <TableCell>{row.email}</TableCell>
-                      <TableCell>{row.password ? 'Provided' : 'Default'}</TableCell>
-                    </TableRow>
-                  ))}
+                  {importResult.results
+                    .filter((result) => result.status === 'failed')
+                    .map((result) => (
+                      <TableRow key={`${result.row}-${result.email}`}>
+                        <TableCell>{result.row}</TableCell>
+                        <TableCell>{result.email}</TableCell>
+                        <TableCell>Failed</TableCell>
+                        <TableCell>{result.message}</TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
+          ) : null}
+        </div>
       ) : null}
-
-      {importResult ? (
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-medium">Import complete</p>
-                <p className="text-sm text-muted-foreground">
-                  Created {importResult.summary.created}, failed {importResult.summary.failed} of{' '}
-                  {importResult.summary.total}.
-                </p>
-              </div>
-              <Button type="button" variant="outline" asChild>
-                <Link to="/admin/users">View users</Link>
-              </Button>
-            </div>
-            {importResult.results.some((result) => result.status === 'failed') ? (
-              <div className="max-h-64 overflow-auto rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Row</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Message</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {importResult.results
-                      .filter((result) => result.status === 'failed')
-                      .map((result) => (
-                        <TableRow key={`${result.row}-${result.email}`}>
-                          <TableCell>{result.row}</TableCell>
-                          <TableCell>{result.email}</TableCell>
-                          <TableCell>Failed</TableCell>
-                          <TableCell>{result.message}</TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" asChild>
-          <Link to="/admin/users">Cancel</Link>
-        </Button>
-      </div>
     </div>
   )
 }
