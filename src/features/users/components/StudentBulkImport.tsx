@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Table,
   TableBody,
@@ -45,46 +44,62 @@ const WIZARD_STEPS = [
 type WizardStep = (typeof WIZARD_STEPS)[number]['step']
 
 const tableHeadClassName =
-  'h-12 px-4 text-xs font-medium uppercase tracking-wide text-muted-foreground'
-const tableCellClassName = 'h-12 px-4'
+  'h-11 px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:h-12 sm:px-4'
+const tableCellClassName = 'h-11 px-3 sm:h-12 sm:px-4'
+
+const footerClassName =
+  'flex flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6'
+const footerButtonClassName = 'min-h-11 w-full sm:min-h-9 sm:w-auto'
 
 function StepIndicator({ currentStep }: { currentStep: WizardStep }) {
   return (
-    <nav aria-label="Import progress" className="flex flex-wrap items-center gap-2">
-      {WIZARD_STEPS.map((item, index) => {
-        const isComplete = currentStep > item.step
-        const isCurrent = currentStep === item.step
+    <nav aria-label="Import progress">
+      <ol className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-2">
+        {WIZARD_STEPS.map((item, index) => {
+          const isComplete = currentStep > item.step
+          const isCurrent = currentStep === item.step
 
-        return (
-          <div key={item.step} className="flex items-center gap-2">
-            <div
-              className={cn(
-                'flex items-center gap-2 text-sm',
-                isCurrent
-                  ? 'font-medium text-foreground'
-                  : isComplete
-                    ? 'text-muted-foreground'
-                    : 'text-muted-foreground/70',
-              )}
-            >
-              <span
+          return (
+            <li key={item.step} className="flex items-center gap-2 sm:contents">
+              <div
                 className={cn(
-                  'flex size-6 items-center justify-center rounded-full border text-xs font-medium',
-                  isCurrent && 'border-primary bg-primary text-primary-foreground',
-                  isComplete && 'border-primary bg-primary/10 text-primary',
-                  !isCurrent && !isComplete && 'border-border bg-background',
+                  'flex flex-1 flex-col items-center gap-1.5 rounded-lg border px-2 py-2.5 text-center sm:flex-row sm:rounded-none sm:border-0 sm:px-0 sm:py-0 sm:text-left',
+                  isCurrent && 'border-border bg-muted/40 sm:border-0 sm:bg-transparent',
                 )}
               >
-                {isComplete ? <Check className="size-3.5" aria-hidden /> : item.step}
-              </span>
-              <span>{item.label}</span>
-            </div>
-            {index < WIZARD_STEPS.length - 1 ? (
-              <span className="h-px w-8 bg-border sm:w-12" aria-hidden />
-            ) : null}
-          </div>
-        )
-      })}
+                <span
+                  className={cn(
+                    'flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium sm:size-6',
+                    isCurrent && 'border-primary bg-primary text-primary-foreground',
+                    isComplete && 'border-primary bg-primary/10 text-primary',
+                    !isCurrent && !isComplete && 'border-border bg-background',
+                  )}
+                >
+                  {isComplete ? <Check className="size-3.5" aria-hidden /> : item.step}
+                </span>
+                <span
+                  className={cn(
+                    'text-xs sm:text-sm',
+                    isCurrent
+                      ? 'font-medium text-foreground'
+                      : isComplete
+                        ? 'text-muted-foreground'
+                        : 'text-muted-foreground/70',
+                  )}
+                >
+                  {item.label}
+                </span>
+              </div>
+              {index < WIZARD_STEPS.length - 1 ? (
+                <span
+                  className="hidden h-px w-8 bg-border sm:block sm:w-12"
+                  aria-hidden
+                />
+              ) : null}
+            </li>
+          )
+        })}
+      </ol>
     </nav>
   )
 }
@@ -219,11 +234,11 @@ export function StudentBulkImport() {
     importResult?.results.filter((result) => result.status === 'failed') ?? []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <StepIndicator currentStep={step} />
 
       <Card className="gap-0 py-0 shadow-sm">
-        <CardContent className="pt-6">
+        <CardContent className="px-4 pt-4 sm:px-6 sm:pt-6">
           {step === 1 ? (
             <FieldGroup>
               <FieldSet className="gap-4">
@@ -236,7 +251,12 @@ export function StudentBulkImport() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" onClick={downloadStudentImportTemplate}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={downloadStudentImportTemplate}
+                  >
                     <Download className="size-4" />
                     Download template
                   </Button>
@@ -257,7 +277,7 @@ export function StudentBulkImport() {
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={cn(
-                    'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-10 text-center transition-colors',
+                    'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-6 text-center transition-colors sm:p-10',
                     isDragging
                       ? 'border-primary bg-primary/5'
                       : 'hover:border-foreground/20 hover:bg-muted/30',
@@ -271,8 +291,13 @@ export function StudentBulkImport() {
                       {fileName ? 'Replace spreadsheet' : 'Upload spreadsheet'}
                     </p>
                     <p className="max-w-md text-sm text-muted-foreground">
-                      Drag and drop an Excel file here, or click to browse. Required columns:
-                      firstName, lastName, email.
+                      <span className="hidden sm:inline">
+                        Drag and drop an Excel file here, or click to browse. Required columns:
+                        firstName, lastName, email.
+                      </span>
+                      <span className="sm:hidden">
+                        Tap to choose an Excel file. Required columns: firstName, lastName, email.
+                      </span>
                     </p>
                   </div>
                   <Button type="button" variant="outline" size="sm" className="pointer-events-none">
@@ -293,12 +318,14 @@ export function StudentBulkImport() {
                 />
 
                 {fileName ? (
-                  <div className="flex items-center gap-2 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
-                    <FileSpreadsheet className="size-4 text-muted-foreground" />
-                    <span className="font-medium">{fileName}</span>
+                  <div className="flex flex-col gap-1 rounded-lg border bg-muted/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <FileSpreadsheet className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate font-medium">{fileName}</span>
+                    </div>
                     {rows.length > 0 ? (
-                      <span className="text-muted-foreground">
-                        — {rows.length} student{rows.length === 1 ? '' : 's'} ready to review
+                      <span className="text-muted-foreground sm:shrink-0">
+                        {rows.length} student{rows.length === 1 ? '' : 's'} ready to review
                       </span>
                     ) : null}
                   </div>
@@ -340,9 +367,9 @@ export function StudentBulkImport() {
                   </FieldDescription>
                 </div>
 
-                <div className="rounded-lg border">
-                  <ScrollArea className="h-80">
-                    <Table>
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                  <div className="max-h-80 overflow-y-auto rounded-lg border">
+                    <Table className="min-w-[36rem]">
                       <TableHeader className="sticky top-0 z-10 bg-background">
                         <TableRow className="hover:bg-transparent">
                           <TableHead className={tableHeadClassName}>Row</TableHead>
@@ -368,7 +395,10 @@ export function StudentBulkImport() {
                         ))}
                       </TableBody>
                     </Table>
-                  </ScrollArea>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground sm:hidden">
+                    Swipe horizontally to see all columns.
+                  </p>
                 </div>
 
                 <p className="text-xs text-muted-foreground">
@@ -429,9 +459,9 @@ export function StudentBulkImport() {
                       </FieldDescription>
                     </div>
 
-                    <div className="rounded-lg border">
-                      <ScrollArea className="h-64">
-                        <Table>
+                    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                      <div className="max-h-64 overflow-y-auto rounded-lg border">
+                        <Table className="min-w-[32rem]">
                           <TableHeader className="sticky top-0 z-10 bg-background">
                             <TableRow className="hover:bg-transparent">
                               <TableHead className={tableHeadClassName}>Row</TableHead>
@@ -455,7 +485,10 @@ export function StudentBulkImport() {
                             ))}
                           </TableBody>
                         </Table>
-                      </ScrollArea>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground sm:hidden">
+                        Swipe horizontally to see all columns.
+                      </p>
                     </div>
                   </FieldSet>
                 </>
@@ -464,14 +497,15 @@ export function StudentBulkImport() {
           ) : null}
         </CardContent>
 
-        <CardFooter className="justify-between border-t bg-muted/20 py-4">
+        <CardFooter className={footerClassName}>
           {step === 1 ? (
             <>
-              <p className="text-sm text-muted-foreground">
+              <p className="hidden min-w-0 truncate text-sm text-muted-foreground sm:block">
                 {fileName ? `Selected: ${fileName}` : 'No file selected'}
               </p>
               <Button
                 type="button"
+                className={footerButtonClassName}
                 disabled={!canContinueFromUpload}
                 onClick={() => setStep(2)}
               >
@@ -482,11 +516,17 @@ export function StudentBulkImport() {
 
           {step === 2 ? (
             <>
-              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+              <Button
+                type="button"
+                variant="secondary"
+                className={footerButtonClassName}
+                onClick={() => setStep(1)}
+              >
                 Back
               </Button>
               <Button
                 type="button"
+                className={footerButtonClassName}
                 disabled={!canImport || mutation.isPending}
                 onClick={() => mutation.mutate()}
               >
@@ -496,7 +536,12 @@ export function StudentBulkImport() {
                     Importing…
                   </>
                 ) : (
-                  `Import ${rows.length} student${rows.length === 1 ? '' : 's'}`
+                  <>
+                    <span className="sm:hidden">Import {rows.length}</span>
+                    <span className="hidden sm:inline">
+                      Import {rows.length} student{rows.length === 1 ? '' : 's'}
+                    </span>
+                  </>
                 )}
               </Button>
             </>
@@ -504,10 +549,16 @@ export function StudentBulkImport() {
 
           {step === 3 ? (
             <>
-              <Button type="button" variant="secondary" onClick={resetImport}>
-                Import another file
+              <Button
+                type="button"
+                variant="secondary"
+                className={footerButtonClassName}
+                onClick={resetImport}
+              >
+                <span className="sm:hidden">Import another</span>
+                <span className="hidden sm:inline">Import another file</span>
               </Button>
-              <Button type="button" asChild>
+              <Button type="button" className={footerButtonClassName} asChild>
                 <Link to="/admin/users">View users</Link>
               </Button>
             </>
