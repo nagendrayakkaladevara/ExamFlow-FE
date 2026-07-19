@@ -264,7 +264,11 @@ export function UserCreatePage() {
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader
         title="Add user"
-        description="Create one account or import many students from Excel."
+        description={
+          activeTab === 'bulk'
+            ? 'Import student accounts from an Excel spreadsheet in three steps.'
+            : 'Create a single lecturer or student account.'
+        }
         actions={
           <Button variant="outline" asChild>
             <Link to="/admin/users">Cancel</Link>
