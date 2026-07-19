@@ -9,6 +9,18 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+  FieldTitle,
+} from '@/components/ui/field'
 import {
   Form,
   FormControl,
@@ -20,11 +32,10 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
-import { Separator } from '@/components/ui/separator'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StudentBulkImport } from '@/features/users/components/StudentBulkImport'
 import { usersApi } from '@/features/users/api'
-import { cn } from '@/lib/utils'
 import { isApiError } from '@/lib/errors'
 
 const createUserSchema = z.object({
@@ -49,28 +60,6 @@ const roleOptions = [
     description: 'Can manage questions, assignments, and class content.',
   },
 ]
-
-function FormSection({
-  title,
-  description,
-  children,
-}: {
-  title: string
-  description?: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold">{title}</h2>
-        {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      {children}
-    </section>
-  )
-}
 
 function SingleUserForm() {
   const navigate = useNavigate()
@@ -100,10 +89,9 @@ function SingleUserForm() {
   })
 
   return (
-    <div className="rounded-lg border bg-background">
+    <Card className="gap-0 py-0 shadow-sm">
       <Form {...form}>
         <form
-          className="divide-y"
           onSubmit={form.handleSubmit(
             (values) => {
               setSubmitError(null)
@@ -114,134 +102,143 @@ function SingleUserForm() {
             },
           )}
         >
-          <div className="space-y-8 p-6">
+          <CardContent className="space-y-0 pt-6">
             {submitError ? (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="mb-6">
                 <AlertDescription>{submitError}</AlertDescription>
               </Alert>
             ) : null}
 
-            <FormSection
-              title="Profile"
-              description="Basic identity details for the new account."
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
+            <FieldGroup>
+              <FieldSet className="gap-4">
+                <div className="space-y-1">
+                  <FieldLegend variant="legend">Profile</FieldLegend>
+                  <FieldDescription>
+                    Basic identity details for the new account.
+                  </FieldDescription>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First name</FormLabel>
+                        <FormControl>
+                          <Input autoComplete="given-name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last name</FormLabel>
+                        <FormControl>
+                          <Input autoComplete="family-name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </FieldSet>
+
+              <FieldSeparator />
+
+              <FieldSet className="gap-4">
+                <div className="space-y-1">
+                  <FieldLegend variant="legend">Account</FieldLegend>
+                  <FieldDescription>Sign-in email and platform role.</FieldDescription>
+                </div>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" autoComplete="email" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Used as the username for signing in.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Role</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            className="grid gap-3 sm:grid-cols-2"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            {roleOptions.map((option) => (
+                              <FieldLabel
+                                key={option.value}
+                                htmlFor={`role-${option.value}`}
+                              >
+                                <Field orientation="horizontal">
+                                  <FieldContent>
+                                    <FieldTitle>{option.label}</FieldTitle>
+                                    <FieldDescription>
+                                      {option.description}
+                                    </FieldDescription>
+                                  </FieldContent>
+                                  <RadioGroupItem
+                                    value={option.value}
+                                    id={`role-${option.value}`}
+                                  />
+                                </Field>
+                              </FieldLabel>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </FieldSet>
+
+              <FieldSeparator />
+
+              <FieldSet className="gap-4">
+                <div className="space-y-1">
+                  <FieldLegend variant="legend">Security</FieldLegend>
+                  <FieldDescription>
+                    Set an initial password. The user can change it after signing in.
+                  </FieldDescription>
+                </div>
                 <FormField
                   control={form.control}
-                  name="firstName"
+                  name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First name</FormLabel>
+                      <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input autoComplete="given-name" {...field} />
+                        <PasswordInput autoComplete="new-password" {...field} />
                       </FormControl>
+                      <FormDescription>Must be at least 8 characters.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last name</FormLabel>
-                      <FormControl>
-                        <Input autoComplete="family-name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </FormSection>
+              </FieldSet>
+            </FieldGroup>
+          </CardContent>
 
-            <Separator />
-
-            <FormSection
-              title="Account"
-              description="Sign-in email and platform role."
-            >
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" autoComplete="email" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Used as the username for signing in.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <FormControl>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          {roleOptions.map((option) => (
-                            <label
-                              key={option.value}
-                              className={cn(
-                                'flex cursor-pointer flex-col gap-1 rounded-lg border p-4 transition-colors',
-                                field.value === option.value
-                                  ? 'border-foreground bg-muted/50'
-                                  : 'border-border hover:bg-muted/30',
-                              )}
-                            >
-                              <input
-                                type="radio"
-                                className="sr-only"
-                                value={option.value}
-                                checked={field.value === option.value}
-                                onChange={() => field.onChange(option.value)}
-                              />
-                              <span className="text-sm font-medium">{option.label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {option.description}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </FormSection>
-
-            <Separator />
-
-            <FormSection
-              title="Security"
-              description="Set an initial password. The user can change it after signing in."
-            >
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <PasswordInput autoComplete="new-password" {...field} />
-                    </FormControl>
-                    <FormDescription>Must be at least 8 characters.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </FormSection>
-          </div>
-
-          <div className="flex items-center justify-end bg-muted/20 px-6 py-4">
+          <CardFooter className="justify-end border-t bg-muted/20 py-4">
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? (
                 <>
@@ -252,10 +249,10 @@ function SingleUserForm() {
                 'Create user'
               )}
             </Button>
-          </div>
+          </CardFooter>
         </form>
       </Form>
-    </div>
+    </Card>
   )
 }
 
