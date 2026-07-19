@@ -261,10 +261,14 @@ export function UserCreatePage() {
   const activeTab = searchParams.get('tab') === 'bulk' ? 'bulk' : 'single'
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-3xl space-y-6 sm:space-y-8">
       <PageHeader
         title="Add user"
-        description="Create one account or import many students from Excel."
+        description={
+          activeTab === 'bulk'
+            ? 'Import student accounts from an Excel spreadsheet in three steps.'
+            : 'Create a single lecturer or student account.'
+        }
         actions={
           <Button variant="outline" asChild>
             <Link to="/admin/users">Cancel</Link>
@@ -280,12 +284,15 @@ export function UserCreatePage() {
       >
         <TabsList variant="line" className="w-full justify-start">
           <TabsTrigger value="single">Single user</TabsTrigger>
-          <TabsTrigger value="bulk">Bulk import students</TabsTrigger>
+          <TabsTrigger value="bulk">
+            <span className="sm:hidden">Bulk import</span>
+            <span className="hidden sm:inline">Bulk import students</span>
+          </TabsTrigger>
         </TabsList>
-        <TabsContent value="single" className="mt-6">
+        <TabsContent value="single" className="mt-4 sm:mt-6">
           <SingleUserForm />
         </TabsContent>
-        <TabsContent value="bulk" className="mt-6">
+        <TabsContent value="bulk" className="mt-4 sm:mt-6">
           <StudentBulkImport />
         </TabsContent>
       </Tabs>
