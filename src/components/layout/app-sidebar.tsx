@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { NavActions } from '@/components/layout/nav-actions'
 import { NavMain } from '@/components/layout/nav-main'
 import { NavUser } from '@/components/layout/nav-user'
 
@@ -60,9 +61,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <NavActions quickCreateHref={getQuickCreateHref(user.role)} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navItems} quickCreateHref={getQuickCreateHref(user.role)} />
+        <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

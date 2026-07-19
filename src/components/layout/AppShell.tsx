@@ -8,6 +8,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 export function AppShell() {
   return (
     <SidebarProvider
+      defaultOpen={false}
       style={
         {
           '--sidebar-width': 'calc(var(--spacing) * 72)',
