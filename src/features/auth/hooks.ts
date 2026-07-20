@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { authApi } from '@/features/auth/api'
 import {
+  refreshAccessToken,
   registerSessionExpiredHandler,
   startTokenLifecycle,
   stopTokenLifecycle,
@@ -26,7 +27,7 @@ export function useSessionExpiryHandler() {
 }
 
 export function useBootstrapAuth() {
-  const setSession = useAuthStore((s) => s.setSession)
+  const setUser = useAuthStore((s) => s.setUser)
   const setBootstrapped = useAuthStore((s) => s.setBootstrapped)
   const clearSession = useAuthStore((s) => s.clearSession)
 
@@ -34,10 +35,15 @@ export function useBootstrapAuth() {
     queryKey: queryKeys.auth.bootstrap,
     queryFn: async () => {
       try {
-        const refresh = await authApi.refresh()
+        const accessToken = await refreshAccessToken({ notifyOnFailure: false })
+        if (!accessToken) {
+          stopTokenLifecycle()
+          clearSession()
+          return null
+        }
+
         const user = await authApi.me()
-        setSession(refresh.accessToken, user, refresh.expiresIn)
-        startTokenLifecycle(refresh.expiresIn)
+        setUser(user)
         return user
       } catch {
         stopTokenLifecycle()
