@@ -22,7 +22,7 @@ export interface QuestionOptionInput {
 export interface CreateQuestionInput {
   type: QuestionType
   title: string
-  description: string
+  description?: string
   explanation?: string | null
   defaultMarks: number
   difficulty: DifficultyLevel
@@ -52,13 +52,18 @@ export function toQuestionPayload(
     imageUrl?: string | null
     imageBlobKey?: string | null
   },
+  options?: { isEdit?: boolean },
 ): CreateQuestionInput {
   const payload: CreateQuestionInput = {
     type: values.type,
     title: values.title.trim(),
-    description: values.description.trim(),
     defaultMarks: values.defaultMarks,
     difficulty: values.difficulty,
+  }
+
+  const description = values.description.trim()
+  if (description || options?.isEdit) {
+    payload.description = description
   }
 
   const explanation = values.explanation?.trim()
