@@ -22,7 +22,7 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent>
           <RadioGroup
-            value={theme ?? 'light'}
+            value={theme ?? 'dark'}
             onValueChange={setTheme}
             className="grid gap-3"
           >
