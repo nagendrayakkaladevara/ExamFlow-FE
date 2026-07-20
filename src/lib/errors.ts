@@ -20,6 +20,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   RESULTS_NOT_AVAILABLE: 'Results are not available yet.',
   IN_PROGRESS: 'Complete your attempt before viewing results.',
   INVALID_QUESTION: 'Invalid question data.',
+  INVALID_TAGS: 'One or more selected tags are invalid.',
   INVALID_AUDIENCE: 'Invalid audience selection.',
   CLASS_ACCESS_DENIED: 'You do not have access to this class.',
   ADMIN_PROTECTED: 'This action is not allowed.',
