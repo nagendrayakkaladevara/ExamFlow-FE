@@ -57,8 +57,14 @@ import { isApiError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 
 const formFooterClassName =
-  'flex flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:px-6'
+  'sticky bottom-0 z-10 flex flex-col gap-3 border-t bg-background/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:static sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:bg-muted/20 sm:px-6 sm:pb-4 sm:backdrop-blur-none'
 const formFooterButtonClassName = 'min-h-11 w-full sm:min-h-9 sm:w-auto'
+const touchInputClassName = 'h-11 text-base sm:h-9 sm:text-sm'
+const optionRowClassName =
+  'flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4'
+const optionActionsClassName =
+  'flex items-center gap-2 border-t border-border pt-3 sm:border-0 sm:pt-0'
+const touchIconButtonClassName = 'min-h-11 min-w-11 shrink-0 sm:min-h-8 sm:min-w-8'
 
 const defaultValues: QuestionFormValues = {
   type: 'SINGLE_CHOICE',
@@ -235,9 +241,9 @@ export function QuestionFormPage() {
 
   if (isEdit && questionQuery.isLoading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-96 w-full" />
+      <div className="mx-auto max-w-3xl space-y-6 px-0">
+        <Skeleton className="h-10 w-48 max-w-full sm:w-64" />
+        <Skeleton className="h-72 w-full sm:h-96" />
       </div>
     )
   }
@@ -247,7 +253,7 @@ export function QuestionFormPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 sm:space-y-8">
+    <div className="mx-auto max-w-3xl space-y-6 pb-4 sm:space-y-8 sm:pb-0">
       <PageHeader
         title={isEdit ? 'Edit question' : 'New question'}
         description={
@@ -266,7 +272,7 @@ export function QuestionFormPage() {
         }
       />
 
-      <Card className="gap-0 py-0 shadow-sm">
+      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(
@@ -279,14 +285,14 @@ export function QuestionFormPage() {
               },
             )}
           >
-            <CardContent className="space-y-0 pt-6">
+            <CardContent className="space-y-0 px-4 pt-4 sm:px-6 sm:pt-6">
               {submitError ? (
                 <Alert variant="destructive" className="mb-6">
                   <AlertDescription>{submitError}</AlertDescription>
                 </Alert>
               ) : null}
 
-              <FieldGroup>
+              <FieldGroup className="gap-6 sm:gap-7">
                 <FieldSet className="gap-4">
                   <div className="space-y-1">
                     <FieldLegend variant="legend">Question type</FieldLegend>
@@ -309,15 +315,22 @@ export function QuestionFormPage() {
                             }
                           >
                             {questionTypeOptions.map((option) => (
-                              <FieldLabel key={option.value} htmlFor={`type-${option.value}`}>
-                                <Field orientation="horizontal">
-                                  <FieldContent>
+                              <FieldLabel
+                                key={option.value}
+                                htmlFor={`type-${option.value}`}
+                                className="[&>[data-slot=field]]:p-3 sm:[&>[data-slot=field]]:p-4"
+                              >
+                                <Field orientation="horizontal" className="items-start gap-3">
+                                  <FieldContent className="min-w-0 flex-1">
                                     <FieldTitle>{option.label}</FieldTitle>
-                                    <FieldDescription>{option.description}</FieldDescription>
+                                    <FieldDescription className="text-pretty">
+                                      {option.description}
+                                    </FieldDescription>
                                   </FieldContent>
                                   <RadioGroupItem
                                     value={option.value}
                                     id={`type-${option.value}`}
+                                    className="mt-1"
                                   />
                                 </Field>
                               </FieldLabel>
@@ -347,7 +360,12 @@ export function QuestionFormPage() {
                       <FormItem>
                         <FormLabel>Title</FormLabel>
                         <FormControl>
-                          <Input placeholder="What is 2 + 2?" maxLength={255} {...field} />
+                          <Input
+                            placeholder="What is 2 + 2?"
+                            maxLength={255}
+                            className={touchInputClassName}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -363,7 +381,7 @@ export function QuestionFormPage() {
                         <FormControl>
                           <Textarea
                             placeholder="Choose the correct answer."
-                            className="min-h-24"
+                            className="min-h-24 text-base sm:text-sm"
                             {...field}
                           />
                         </FormControl>
@@ -385,9 +403,11 @@ export function QuestionFormPage() {
                           <FormControl>
                             <Input
                               type="number"
+                              inputMode="numeric"
                               min={1}
                               step={1}
-                              value={field.value}
+                              className={touchInputClassName}
+                              value={Number.isNaN(field.value) ? '' : field.value}
                               onBlur={field.onBlur}
                               name={field.name}
                               ref={field.ref}
@@ -413,7 +433,9 @@ export function QuestionFormPage() {
                           <FormLabel>Difficulty</FormLabel>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <FormControl>
-                              <SelectTrigger className="w-full">
+                              <SelectTrigger
+                                className="h-11 w-full min-h-11 text-base data-[size=default]:h-11 sm:h-9 sm:min-h-9 sm:text-sm sm:data-[size=default]:h-9"
+                              >
                                 <SelectValue placeholder="Select difficulty" />
                               </SelectTrigger>
                             </FormControl>
@@ -454,7 +476,11 @@ export function QuestionFormPage() {
                         <FormItem>
                           <FormLabel>Correct answer</FormLabel>
                           <FormControl>
-                            <Input placeholder="Paris" {...field} />
+                            <Input
+                              placeholder="Paris"
+                              className={touchInputClassName}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -479,40 +505,42 @@ export function QuestionFormPage() {
                           className="gap-3"
                         >
                           {fields.map((item, index) => (
-                            <div
-                              key={item.id}
-                              className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-start"
-                            >
+                            <div key={item.id} className={optionRowClassName}>
                               <FormField
                                 control={form.control}
                                 name={`options.${index}.optionText`}
                                 render={({ field }) => (
-                                  <FormItem className="flex-1 space-y-1">
-                                    <FormLabel className="sr-only">Option {index + 1}</FormLabel>
+                                  <FormItem className="min-w-0 flex-1 space-y-1">
+                                    <FormLabel className="sr-only">
+                                      Option {index + 1}
+                                    </FormLabel>
                                     <FormControl>
-                                      <Input placeholder={`Option ${index + 1}`} {...field} />
+                                      <Input
+                                        placeholder={`Option ${index + 1}`}
+                                        className={touchInputClassName}
+                                        {...field}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
-                              <div className="flex items-center justify-between gap-3 sm:pt-1">
-                                <div className="flex items-center gap-2">
+                              <div className={optionActionsClassName}>
+                                <FormLabel
+                                  htmlFor={`correct-${index}`}
+                                  className="flex min-h-11 flex-1 cursor-pointer items-center gap-2 font-normal"
+                                >
                                   <RadioGroupItem
                                     value={String(index)}
                                     id={`correct-${index}`}
                                   />
-                                  <FormLabel
-                                    htmlFor={`correct-${index}`}
-                                    className="font-normal"
-                                  >
-                                    Correct
-                                  </FormLabel>
-                                </div>
+                                  Correct
+                                </FormLabel>
                                 <Button
                                   type="button"
                                   variant="ghost"
-                                  size="icon-sm"
+                                  size="icon"
+                                  className={touchIconButtonClassName}
                                   disabled={fields.length <= 2}
                                   onClick={() => remove(index)}
                                   aria-label={`Remove option ${index + 1}`}
@@ -525,29 +553,32 @@ export function QuestionFormPage() {
                         </RadioGroup>
                       ) : (
                         fields.map((item, index) => (
-                          <div
-                            key={item.id}
-                            className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-start"
-                          >
+                          <div key={item.id} className={optionRowClassName}>
                             <FormField
                               control={form.control}
                               name={`options.${index}.optionText`}
                               render={({ field }) => (
-                                <FormItem className="flex-1 space-y-1">
-                                  <FormLabel className="sr-only">Option {index + 1}</FormLabel>
+                                <FormItem className="min-w-0 flex-1 space-y-1">
+                                  <FormLabel className="sr-only">
+                                    Option {index + 1}
+                                  </FormLabel>
                                   <FormControl>
-                                    <Input placeholder={`Option ${index + 1}`} {...field} />
+                                    <Input
+                                      placeholder={`Option ${index + 1}`}
+                                      className={touchInputClassName}
+                                      {...field}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
-                            <div className="flex items-center justify-between gap-3 sm:pt-1">
+                            <div className={optionActionsClassName}>
                               <FormField
                                 control={form.control}
                                 name={`options.${index}.isCorrect`}
                                 render={({ field }) => (
-                                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                                  <FormItem className="flex min-h-11 flex-1 flex-row items-center gap-2 space-y-0">
                                     <FormControl>
                                       <Checkbox
                                         checked={field.value}
@@ -569,7 +600,8 @@ export function QuestionFormPage() {
                               <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon-sm"
+                                size="icon"
+                                className={touchIconButtonClassName}
                                 disabled={fields.length <= 2}
                                 onClick={() => remove(index)}
                                 aria-label={`Remove option ${index + 1}`}
@@ -592,7 +624,7 @@ export function QuestionFormPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
+                        className="min-h-11 w-full sm:min-h-8 sm:w-auto"
                         onClick={() => append({ optionText: '', isCorrect: false })}
                       >
                         <Plus />
@@ -620,7 +652,12 @@ export function QuestionFormPage() {
                         <FormItem>
                           <FormLabel>Subject</FormLabel>
                           <FormControl>
-                            <Input placeholder="Mathematics" maxLength={150} {...field} />
+                            <Input
+                              placeholder="Mathematics"
+                              maxLength={150}
+                              className={touchInputClassName}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -633,7 +670,12 @@ export function QuestionFormPage() {
                         <FormItem>
                           <FormLabel>Topic</FormLabel>
                           <FormControl>
-                            <Input placeholder="Number theory" maxLength={150} {...field} />
+                            <Input
+                              placeholder="Number theory"
+                              maxLength={150}
+                              className={touchInputClassName}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -648,9 +690,11 @@ export function QuestionFormPage() {
                       <FormItem>
                         <FormLabel>Tags</FormLabel>
                         {tagsQuery.isLoading ? (
-                          <Skeleton className="h-9 w-full" />
+                          <Skeleton className="h-11 w-full sm:h-9" />
                         ) : (tagsQuery.data ?? []).length === 0 ? (
-                          <FormDescription>No tags yet. Create tags from the tags page.</FormDescription>
+                          <FormDescription>
+                            No tags yet. Create tags from the tags page.
+                          </FormDescription>
                         ) : (
                           <div className="flex flex-wrap gap-2">
                             {(tagsQuery.data ?? []).map((tag) => {
@@ -660,6 +704,7 @@ export function QuestionFormPage() {
                                   key={tag.id}
                                   type="button"
                                   size="sm"
+                                  className="min-h-11 px-3 sm:min-h-8"
                                   variant={selected ? 'default' : 'outline'}
                                   onClick={() => {
                                     field.onChange(
@@ -700,7 +745,7 @@ export function QuestionFormPage() {
                         <FormControl>
                           <Textarea
                             placeholder="Shown after grading, when results are available."
-                            className="min-h-20"
+                            className="min-h-20 text-base sm:text-sm"
                             {...field}
                           />
                         </FormControl>
@@ -716,7 +761,11 @@ export function QuestionFormPage() {
                         type="file"
                         accept={ALLOWED_IMAGE_TYPES.join(',')}
                         disabled={uploadMutation.isPending}
-                        className="max-w-md"
+                        className={cn(
+                          'w-full max-w-full sm:max-w-md',
+                          touchInputClassName,
+                          'file:mr-3 file:h-8',
+                        )}
                         onChange={(event) => {
                           const file = event.target.files?.[0]
                           if (file) uploadMutation.mutate(file)
@@ -730,20 +779,25 @@ export function QuestionFormPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                          <Upload className="size-3.5" />
+                          <Upload className="size-3.5 shrink-0" />
                           PNG, JPEG, or WebP · max 5 MB
                         </span>
                       )}
                     </div>
 
                     {imageUrl ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <img
                           src={imageUrl}
                           alt="Question"
-                          className="max-h-48 rounded-lg border border-border"
+                          className="h-auto max-h-56 w-full rounded-lg border border-border object-contain sm:max-h-48 sm:w-auto"
                         />
-                        <Button type="button" variant="outline" size="sm" onClick={clearImage}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="min-h-11 w-full sm:min-h-8 sm:w-auto"
+                          onClick={clearImage}
+                        >
                           <X />
                           Remove image
                         </Button>
