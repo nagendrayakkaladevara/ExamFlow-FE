@@ -1,0 +1,8 @@
+.ag-root-wrapper {
+  --ag-header-text-transform: uppercase;
+  --ag-header-letter-spacing: 0.05em;
+}
+
+.ag-header-cell-text {
+  font-weight: 500;
+}
