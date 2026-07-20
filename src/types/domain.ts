@@ -2,6 +2,7 @@ import type {
   AudienceTargetType,
   DifficultyLevel,
   PollResultVisibility,
+  PollTag,
   QuestionType,
   ResultPolicy,
   SubmissionStatus,
@@ -158,6 +159,7 @@ export interface PollRecord {
   createdAt: string
   options: PollOption[]
   audiences: AudienceRecord[]
+  tags?: PollTag[]
 }
 
 export interface PollResults {
