@@ -5,7 +5,11 @@ export const authApi = {
   login: (credentials: LoginCredentials) =>
     api.post<LoginResponse>('/auth/login', credentials, { skipAuth: true }),
 
-  refresh: () => api.post<RefreshResponse>('/auth/refresh', undefined, { skipAuth: true }),
+  refresh: () =>
+    api.post<RefreshResponse>('/auth/refresh', undefined, {
+      skipAuth: true,
+      skipRefresh: true,
+    }),
 
   logout: () => api.post<{ message: string }>('/auth/logout', undefined, { skipRefresh: true }),
 

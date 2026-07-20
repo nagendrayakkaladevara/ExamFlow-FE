@@ -53,7 +53,16 @@ async function parseRefreshResponse(response: Response): Promise<RefreshResponse
   return payload.data
 }
 
-export async function refreshAccessToken(): Promise<string | null> {
+interface RefreshAccessTokenOptions {
+  /** When false, a failed refresh clears state without redirecting to login. */
+  notifyOnFailure?: boolean
+}
+
+export async function refreshAccessToken(
+  options: RefreshAccessTokenOptions = {},
+): Promise<string | null> {
+  const { notifyOnFailure = true } = options
+
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
@@ -72,7 +81,9 @@ export async function refreshAccessToken(): Promise<string | null> {
       } catch {
         cancelProactiveRefresh()
         useAuthStore.getState().clearSession()
-        notifySessionExpired()
+        if (notifyOnFailure) {
+          notifySessionExpired()
+        }
         return null
       } finally {
         refreshPromise = null
