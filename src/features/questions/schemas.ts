@@ -21,7 +21,7 @@ export const questionFormSchema = z
       .trim()
       .min(1, 'Title is required')
       .max(255, 'Title must be at most 255 characters'),
-    description: z.string().trim().min(1, 'Description is required'),
+    description: z.string().trim(),
     defaultMarks: z
       .number({ error: 'Marks must be a number' })
       .positive('Marks must be greater than 0'),

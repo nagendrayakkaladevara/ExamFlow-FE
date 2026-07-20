@@ -187,7 +187,7 @@ export function QuestionFormPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: QuestionFormValues) => {
-      const body = toQuestionPayload(values)
+      const body = toQuestionPayload(values, { isEdit })
       if (isEdit && id) {
         return questionsApi.update(id, body)
       }
@@ -350,7 +350,8 @@ export function QuestionFormPage() {
                   <div className="space-y-1">
                     <FieldLegend variant="legend">Content</FieldLegend>
                     <FieldDescription>
-                      Title and description shown to students during the assignment.
+                      Title is required. An optional description can provide extra context for
+                      students during the assignment.
                     </FieldDescription>
                   </div>
 
@@ -387,7 +388,7 @@ export function QuestionFormPage() {
                           />
                         </FormControl>
                         <FormDescription>
-                          Supporting instructions or stem text for the question.
+                          Optional supporting instructions or stem text for the question.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
