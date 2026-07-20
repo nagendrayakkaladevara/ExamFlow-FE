@@ -28,8 +28,75 @@ import { classesApi } from '@/features/classes/api'
 import { queryKeys } from '@/config/query-keys'
 import { ActiveBadge } from '@/components/shared/StatusBadge'
 import { isApiError } from '@/lib/errors'
+import { useAuthStore } from '@/features/auth/store'
+import { useRoleBasePath } from '@/hooks/useRolePath'
+import { useClassOptions } from '@/hooks/useClassOptions'
 
 export function ClassesListPage() {
+  const role = useAuthStore((s) => s.user?.role)
+  const basePath = useRoleBasePath()
+  const isAdmin = role === 'ADMIN'
+
+  if (isAdmin) {
+    return <AdminClassesList basePath={basePath} />
+  }
+
+  return <RoleClassesList basePath={basePath} />
+}
+
+function RoleClassesList({ basePath }: { basePath: string }) {
+  const { classes, isLoading, error } = useClassOptions()
+
+  if (isLoading) return <Skeleton className="h-64 w-full" />
+  if (error) return <QueryError error={error} />
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Classes"
+        description="View your assigned classes."
+      />
+
+      {classes.length === 0 ? (
+        <EmptyState
+          title="No classes yet"
+          description="You are not assigned to any classes yet."
+        />
+      ) : (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Code</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {classes.map((cls) => (
+                <TableRow key={cls.id}>
+                  <TableCell className="font-medium">{cls.name}</TableCell>
+                  <TableCell>{cls.code ?? '—'}</TableCell>
+                  <TableCell>
+                    <ActiveBadge active={cls.isActive} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild variant="ghost" size="sm">
+                      <Link to={`${basePath}/classes/${cls.id}`}>View</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AdminClassesList({ basePath }: { basePath: string }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
@@ -124,7 +191,7 @@ export function ClassesListPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="ghost" size="sm">
-                      <Link to={`/admin/classes/${cls.id}`}>Manage</Link>
+                      <Link to={`${basePath}/classes/${cls.id}`}>Manage</Link>
                     </Button>
                   </TableCell>
                 </TableRow>

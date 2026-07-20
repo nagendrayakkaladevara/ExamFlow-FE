@@ -21,6 +21,12 @@ export function useClassOptions() {
     enabled: role === 'LECTURER',
   })
 
+  const studentQuery = useQuery({
+    queryKey: queryKeys.classes.list({ scope: 'enrolled' }),
+    queryFn: () => classesApi.listEnrolled(),
+    enabled: role === 'STUDENT',
+  })
+
   if (role === 'ADMIN') {
     return {
       classes: adminQuery.data ?? [],
@@ -34,6 +40,14 @@ export function useClassOptions() {
       classes: lecturerQuery.data ?? [],
       isLoading: lecturerQuery.isLoading,
       error: lecturerQuery.error,
+    }
+  }
+
+  if (role === 'STUDENT') {
+    return {
+      classes: studentQuery.data ?? [],
+      isLoading: studentQuery.isLoading,
+      error: studentQuery.error,
     }
   }
 
