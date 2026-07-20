@@ -1,25 +1,101 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useFieldArray, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Loader2, Plus, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+  FieldTitle,
+} from '@/components/ui/field'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { questionsApi } from '@/features/questions/api'
+import { Textarea } from '@/components/ui/textarea'
+import { questionsApi, toQuestionPayload } from '@/features/questions/api'
+import {
+  difficultyOptions,
+  questionFormSchema,
+  questionTypeOptions,
+  type QuestionFormValues,
+} from '@/features/questions/schemas'
 import { tagsApi } from '@/features/tags/api'
 import { fileToBase64, uploadsApi } from '@/features/uploads/api'
 import { queryKeys } from '@/config/query-keys'
-import { ALLOWED_IMAGE_TYPES } from '@/config/constants'
-import type { DifficultyLevel, QuestionType } from '@/types/enums'
+import { ALLOWED_IMAGE_TYPES, UPLOAD_MAX_SIZE_BYTES } from '@/config/constants'
 import { isApiError } from '@/lib/errors'
+import { cn } from '@/lib/utils'
 
-interface OptionDraft {
-  optionText: string
-  isCorrect: boolean
+const formFooterClassName =
+  'flex flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:px-6'
+const formFooterButtonClassName = 'min-h-11 w-full sm:min-h-9 sm:w-auto'
+
+const defaultValues: QuestionFormValues = {
+  type: 'SINGLE_CHOICE',
+  title: '',
+  description: '',
+  defaultMarks: 1,
+  difficulty: 'EASY',
+  explanation: '',
+  subject: '',
+  topic: '',
+  correctText: '',
+  tagIds: [],
+  options: [
+    { optionText: '', isCorrect: true },
+    { optionText: '', isCorrect: false },
+  ],
+  imageUrl: null,
+  imageBlobKey: null,
+}
+
+function applyApiFieldErrors(
+  error: unknown,
+  setError: ReturnType<typeof useForm<QuestionFormValues>>['setError'],
+) {
+  if (!isApiError(error) || !error.details || typeof error.details !== 'object') {
+    return
+  }
+
+  const fieldErrors = (error.details as { fieldErrors?: Record<string, string[]> })
+    .fieldErrors
+  if (!fieldErrors) return
+
+  for (const [name, messages] of Object.entries(fieldErrors)) {
+    const message = messages[0]
+    if (!message) continue
+    setError(name as keyof QuestionFormValues, { message })
+  }
 }
 
 export function QuestionFormPage() {
@@ -27,23 +103,21 @@ export function QuestionFormPage() {
   const isEdit = Boolean(id)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const [type, setType] = useState<QuestionType>('SINGLE_CHOICE')
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [explanation, setExplanation] = useState('')
-  const [defaultMarks, setDefaultMarks] = useState(1)
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>('EASY')
-  const [subject, setSubject] = useState('')
-  const [topic, setTopic] = useState('')
-  const [correctText, setCorrectText] = useState('')
-  const [tagIds, setTagIds] = useState<string[]>([])
-  const [options, setOptions] = useState<OptionDraft[]>([
-    { optionText: '', isCorrect: true },
-    { optionText: '', isCorrect: false },
-  ])
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [imageBlobKey, setImageBlobKey] = useState<string | null>(null)
+  const form = useForm<QuestionFormValues>({
+    resolver: zodResolver(questionFormSchema),
+    defaultValues,
+    mode: 'onBlur',
+  })
+
+  const { fields, append, remove, replace } = useFieldArray({
+    control: form.control,
+    name: 'options',
+  })
+
+  const questionType = form.watch('type')
+  const imageUrl = form.watch('imageUrl')
 
   const questionQuery = useQuery({
     queryKey: [...queryKeys.questions.all, id],
@@ -59,65 +133,55 @@ export function QuestionFormPage() {
   useEffect(() => {
     if (!questionQuery.data) return
     const q = questionQuery.data
-    setType(q.type)
-    setTitle(q.title)
-    setDescription(q.description)
-    setExplanation(q.explanation ?? '')
-    setDefaultMarks(q.defaultMarks)
-    setDifficulty(q.difficulty)
-    setSubject(q.subject ?? '')
-    setTopic(q.topic ?? '')
-    setCorrectText(q.correctText ?? '')
-    setTagIds((q.tags ?? []).map((t) => t.id))
-    setImageUrl(q.imageUrl)
-    setImageBlobKey(q.imageBlobKey)
-    if (q.options?.length) {
-      setOptions(
-        q.options.map((o) => ({ optionText: o.optionText, isCorrect: Boolean(o.isCorrect) })),
-      )
-    }
-  }, [questionQuery.data])
+    form.reset({
+      type: q.type === 'FILL_BLANK' || q.type === 'SINGLE_CHOICE' || q.type === 'MULTIPLE_CHOICE'
+        ? q.type
+        : 'SINGLE_CHOICE',
+      title: q.title,
+      description: q.description,
+      defaultMarks: q.defaultMarks,
+      difficulty: q.difficulty,
+      explanation: q.explanation ?? '',
+      subject: q.subject ?? '',
+      topic: q.topic ?? '',
+      correctText: q.correctText ?? '',
+      tagIds: (q.tags ?? []).map((tag) => tag.id),
+      options:
+        q.options?.length
+          ? q.options.map((option) => ({
+              optionText: option.optionText,
+              isCorrect: Boolean(option.isCorrect),
+            }))
+          : defaultValues.options,
+      imageUrl: q.imageUrl,
+      imageBlobKey: q.imageBlobKey,
+    })
+  }, [questionQuery.data, form])
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_TYPES)[number])) {
+        throw new Error('Use a PNG, JPEG, or WebP image.')
+      }
+      if (file.size > UPLOAD_MAX_SIZE_BYTES) {
+        throw new Error('Image must be 5 MB or smaller.')
+      }
       const base64 = await fileToBase64(file)
       return uploadsApi.uploadImage(file.name, file.type, base64)
     },
     onSuccess: (data) => {
-      setImageUrl(data.url)
-      setImageBlobKey(data.blobKey)
+      form.setValue('imageUrl', data.url, { shouldDirty: true })
+      form.setValue('imageBlobKey', data.blobKey, { shouldDirty: true })
       toast.success('Image uploaded.')
     },
     onError: (error) => {
-      toast.error(isApiError(error) ? error.message : 'Unable to upload image.')
+      toast.error(isApiError(error) ? error.message : error instanceof Error ? error.message : 'Unable to upload image.')
     },
   })
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      const body = {
-        type,
-        title,
-        description,
-        explanation: explanation || null,
-        defaultMarks,
-        difficulty,
-        subject: subject || null,
-        topic: topic || null,
-        correctText: type === 'FILL_BLANK' ? correctText : null,
-        imageUrl,
-        imageBlobKey,
-        tagIds,
-        options:
-          type === 'FILL_BLANK'
-            ? undefined
-            : options.map((o, index) => ({
-                optionText: o.optionText,
-                isCorrect: o.isCorrect,
-                sortOrder: index,
-              })),
-      }
-
+    mutationFn: async (values: QuestionFormValues) => {
+      const body = toQuestionPayload(values)
       if (isEdit && id) {
         return questionsApi.update(id, body)
       }
@@ -129,197 +193,595 @@ export function QuestionFormPage() {
       navigate('/lecturer/questions')
     },
     onError: (error) => {
-      toast.error(isApiError(error) ? error.message : 'Unable to save question.')
+      const message = isApiError(error) ? error.message : 'Unable to save question.'
+      setSubmitError(message)
+      applyApiFieldErrors(error, form.setError)
+      toast.error(message)
     },
   })
 
-  if (isEdit && questionQuery.isLoading) return <Skeleton className="h-64 w-full" />
+  function handleTypeChange(nextType: QuestionFormValues['type']) {
+    const previous = form.getValues('type')
+    form.setValue('type', nextType, { shouldValidate: true })
+
+    if (nextType === 'FILL_BLANK') {
+      return
+    }
+
+    if (previous === 'FILL_BLANK' || form.getValues('options').length === 0) {
+      replace([
+        { optionText: '', isCorrect: true },
+        { optionText: '', isCorrect: false },
+      ])
+      return
+    }
+
+    if (nextType === 'SINGLE_CHOICE') {
+      const options = form.getValues('options')
+      const firstCorrectIndex = options.findIndex((option) => option.isCorrect)
+      replace(
+        options.map((option, index) => ({
+          ...option,
+          isCorrect: index === (firstCorrectIndex >= 0 ? firstCorrectIndex : 0),
+        })),
+      )
+    }
+  }
+
+  function clearImage() {
+    form.setValue('imageUrl', null, { shouldDirty: true })
+    form.setValue('imageBlobKey', null, { shouldDirty: true })
+  }
+
+  if (isEdit && questionQuery.isLoading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    )
+  }
+
   if (questionQuery.error) {
     return <QueryError error={questionQuery.error} onRetry={() => questionQuery.refetch()} />
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 sm:space-y-8">
       <PageHeader
         title={isEdit ? 'Edit question' : 'New question'}
-        description="Build a reusable question for your assignments."
+        description={
+          isEdit
+            ? 'Update this question in your bank.'
+            : 'Create a reusable question for your assignments.'
+        }
         actions={
-          <Button variant="outline" asChild>
+          <Button
+            variant="secondary"
+            className={cn(formFooterButtonClassName, 'hidden sm:inline-flex')}
+            asChild
+          >
             <Link to="/lecturer/questions">Cancel</Link>
           </Button>
         }
       />
 
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label>Type</Label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                value={type}
-                onChange={(e) => setType(e.target.value as QuestionType)}
-              >
-                <option value="SINGLE_CHOICE">Single choice</option>
-                <option value="MULTIPLE_CHOICE">Multiple choice</option>
-                <option value="FILL_BLANK">Fill in the blank</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label>Difficulty</Label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
-              >
-                <option value="EASY">Easy</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HARD">Hard</option>
-              </select>
-            </div>
-          </div>
+      <Card className="gap-0 py-0 shadow-sm">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(
+              (values) => {
+                setSubmitError(null)
+                saveMutation.mutate(values)
+              },
+              () => {
+                setSubmitError('Please fix the highlighted fields below.')
+              },
+            )}
+          >
+            <CardContent className="space-y-0 pt-6">
+              {submitError ? (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertDescription>{submitError}</AlertDescription>
+                </Alert>
+              ) : null}
 
-          <div className="space-y-1">
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Description</Label>
-            <textarea
-              className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
+              <FieldGroup>
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Question type</FieldLegend>
+                    <FieldDescription>
+                      Choose how students will answer. Descriptive questions are not available yet.
+                    </FieldDescription>
+                  </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1">
-              <Label>Default marks</Label>
-              <Input
-                type="number"
-                min={1}
-                value={defaultMarks}
-                onChange={(e) => setDefaultMarks(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Subject</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Topic</Label>
-              <Input value={topic} onChange={(e) => setTopic(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-2">
-              {(tagsQuery.data ?? []).map((tag) => {
-                const selected = tagIds.includes(tag.id)
-                return (
-                  <Button
-                    key={tag.id}
-                    type="button"
-                    size="sm"
-                    variant={selected ? 'default' : 'outline'}
-                    onClick={() =>
-                      setTagIds((prev) =>
-                        selected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id],
-                      )
-                    }
-                  >
-                    {tag.name}
-                  </Button>
-                )
-              })}
-            </div>
-          </div>
-
-          {type === 'FILL_BLANK' ? (
-            <div className="space-y-1">
-              <Label>Correct answer</Label>
-              <Input value={correctText} onChange={(e) => setCorrectText(e.target.value)} />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Label>Answer options</Label>
-              {options.map((option, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Input
-                    value={option.optionText}
-                    onChange={(e) =>
-                      setOptions((prev) =>
-                        prev.map((o, i) =>
-                          i === index ? { ...o, optionText: e.target.value } : o,
-                        ),
-                      )
-                    }
-                    placeholder={`Option ${index + 1}`}
-                  />
-                  <label className="flex items-center gap-1 text-sm whitespace-nowrap">
-                    <input
-                      type={type === 'SINGLE_CHOICE' ? 'radio' : 'checkbox'}
-                      checked={option.isCorrect}
-                      name="correct-option"
-                      onChange={() =>
-                        setOptions((prev) =>
-                          prev.map((o, i) => {
-                            if (type === 'SINGLE_CHOICE') {
-                              return { ...o, isCorrect: i === index }
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroup
+                            className="grid gap-3"
+                            value={field.value}
+                            onValueChange={(value) =>
+                              handleTypeChange(value as QuestionFormValues['type'])
                             }
-                            return i === index ? { ...o, isCorrect: !o.isCorrect } : o
-                          }),
-                        )
-                      }
+                          >
+                            {questionTypeOptions.map((option) => (
+                              <FieldLabel key={option.value} htmlFor={`type-${option.value}`}>
+                                <Field orientation="horizontal">
+                                  <FieldContent>
+                                    <FieldTitle>{option.label}</FieldTitle>
+                                    <FieldDescription>{option.description}</FieldDescription>
+                                  </FieldContent>
+                                  <RadioGroupItem
+                                    value={option.value}
+                                    id={`type-${option.value}`}
+                                  />
+                                </Field>
+                              </FieldLabel>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </FieldSet>
+
+                <FieldSeparator />
+
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Content</FieldLegend>
+                    <FieldDescription>
+                      Title and description shown to students during the assignment.
+                    </FieldDescription>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="What is 2 + 2?" maxLength={255} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Choose the correct answer."
+                            className="min-h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Supporting instructions or stem text for the question.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="defaultMarks"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Default marks</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={field.value}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                              onChange={(event) =>
+                                field.onChange(
+                                  event.target.value === ''
+                                    ? Number.NaN
+                                    : Number(event.target.value),
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    Correct
-                  </label>
-                </div>
-              ))}
+
+                    <FormField
+                      control={form.control}
+                      name="difficulty"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Difficulty</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select difficulty" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {difficultyOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FieldSet>
+
+                <FieldSeparator />
+
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Answer</FieldLegend>
+                    <FieldDescription>
+                      {questionType === 'FILL_BLANK'
+                        ? 'Enter the accepted text answer. Matching is handled by the server.'
+                        : questionType === 'SINGLE_CHOICE'
+                          ? 'Mark exactly one option as correct.'
+                          : 'Mark one or more options as correct.'}
+                    </FieldDescription>
+                  </div>
+
+                  {questionType === 'FILL_BLANK' ? (
+                    <FormField
+                      control={form.control}
+                      name="correctText"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Correct answer</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Paris" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {questionType === 'SINGLE_CHOICE' ? (
+                        <RadioGroup
+                          value={String(
+                            form.watch('options').findIndex((option) => option.isCorrect),
+                          )}
+                          onValueChange={(value) => {
+                            const selected = Number(value)
+                            replace(
+                              form.getValues('options').map((option, i) => ({
+                                ...option,
+                                isCorrect: i === selected,
+                              })),
+                            )
+                          }}
+                          className="gap-3"
+                        >
+                          {fields.map((item, index) => (
+                            <div
+                              key={item.id}
+                              className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-start"
+                            >
+                              <FormField
+                                control={form.control}
+                                name={`options.${index}.optionText`}
+                                render={({ field }) => (
+                                  <FormItem className="flex-1 space-y-1">
+                                    <FormLabel className="sr-only">Option {index + 1}</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder={`Option ${index + 1}`} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <div className="flex items-center justify-between gap-3 sm:pt-1">
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem
+                                    value={String(index)}
+                                    id={`correct-${index}`}
+                                  />
+                                  <FormLabel
+                                    htmlFor={`correct-${index}`}
+                                    className="font-normal"
+                                  >
+                                    Correct
+                                  </FormLabel>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  disabled={fields.length <= 2}
+                                  onClick={() => remove(index)}
+                                  aria-label={`Remove option ${index + 1}`}
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      ) : (
+                        fields.map((item, index) => (
+                          <div
+                            key={item.id}
+                            className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-start"
+                          >
+                            <FormField
+                              control={form.control}
+                              name={`options.${index}.optionText`}
+                              render={({ field }) => (
+                                <FormItem className="flex-1 space-y-1">
+                                  <FormLabel className="sr-only">Option {index + 1}</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder={`Option ${index + 1}`} {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex items-center justify-between gap-3 sm:pt-1">
+                              <FormField
+                                control={form.control}
+                                name={`options.${index}.isCorrect`}
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={(checked) =>
+                                          field.onChange(checked === true)
+                                        }
+                                        id={`correct-${index}`}
+                                      />
+                                    </FormControl>
+                                    <FormLabel
+                                      htmlFor={`correct-${index}`}
+                                      className="font-normal"
+                                    >
+                                      Correct
+                                    </FormLabel>
+                                  </FormItem>
+                                )}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                disabled={fields.length <= 2}
+                                onClick={() => remove(index)}
+                                aria-label={`Remove option ${index + 1}`}
+                              >
+                                <Trash2 />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+
+                      {form.formState.errors.options?.root?.message ||
+                      typeof form.formState.errors.options?.message === 'string' ? (
+                        <p className="text-sm text-destructive">
+                          {form.formState.errors.options?.root?.message ??
+                            form.formState.errors.options?.message}
+                        </p>
+                      ) : null}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => append({ optionText: '', isCorrect: false })}
+                      >
+                        <Plus />
+                        Add option
+                      </Button>
+                    </div>
+                  )}
+                </FieldSet>
+
+                <FieldSeparator />
+
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Classification</FieldLegend>
+                    <FieldDescription>
+                      Optional subject, topic, and tags to help find this question later.
+                    </FieldDescription>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subject</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Mathematics" maxLength={150} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="topic"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Topic</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Number theory" maxLength={150} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="tagIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tags</FormLabel>
+                        {tagsQuery.isLoading ? (
+                          <Skeleton className="h-9 w-full" />
+                        ) : (tagsQuery.data ?? []).length === 0 ? (
+                          <FormDescription>No tags yet. Create tags from the tags page.</FormDescription>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {(tagsQuery.data ?? []).map((tag) => {
+                              const selected = field.value.includes(tag.id)
+                              return (
+                                <Button
+                                  key={tag.id}
+                                  type="button"
+                                  size="sm"
+                                  variant={selected ? 'default' : 'outline'}
+                                  onClick={() => {
+                                    field.onChange(
+                                      selected
+                                        ? field.value.filter((tagId) => tagId !== tag.id)
+                                        : [...field.value, tag.id],
+                                    )
+                                  }}
+                                >
+                                  {tag.name}
+                                </Button>
+                              )
+                            })}
+                          </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </FieldSet>
+
+                <FieldSeparator />
+
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Optional details</FieldLegend>
+                    <FieldDescription>
+                      Explanation and image are optional. Upload an image only when needed.
+                    </FieldDescription>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="explanation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Explanation</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Shown after grading, when results are available."
+                            className="min-h-20"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-3">
+                    <FormLabel>Image</FormLabel>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <Input
+                        type="file"
+                        accept={ALLOWED_IMAGE_TYPES.join(',')}
+                        disabled={uploadMutation.isPending}
+                        className="max-w-md"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          if (file) uploadMutation.mutate(file)
+                          event.target.value = ''
+                        }}
+                      />
+                      {uploadMutation.isPending ? (
+                        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="size-4 animate-spin" />
+                          Uploading…
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                          <Upload className="size-3.5" />
+                          PNG, JPEG, or WebP · max 5 MB
+                        </span>
+                      )}
+                    </div>
+
+                    {imageUrl ? (
+                      <div className="space-y-2">
+                        <img
+                          src={imageUrl}
+                          alt="Question"
+                          className="max-h-48 rounded-lg border border-border"
+                        />
+                        <Button type="button" variant="outline" size="sm" onClick={clearImage}>
+                          <X />
+                          Remove image
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </FieldSet>
+              </FieldGroup>
+            </CardContent>
+
+            <CardFooter className={formFooterClassName}>
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setOptions((prev) => [...prev, { optionText: '', isCorrect: false }])}
+                variant="secondary"
+                className={cn(formFooterButtonClassName, 'sm:hidden')}
+                asChild
               >
-                Add option
+                <Link to="/lecturer/questions">Cancel</Link>
               </Button>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>Image (optional)</Label>
-            <Input
-              type="file"
-              accept={ALLOWED_IMAGE_TYPES.join(',')}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) uploadMutation.mutate(file)
-              }}
-            />
-            {imageUrl ? (
-              <img src={imageUrl} alt="Question" className="max-h-48 rounded-md border" />
-            ) : null}
-          </div>
-
-          <div className="space-y-1">
-            <Label>Explanation (optional)</Label>
-            <textarea
-              className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-            />
-          </div>
-
-          <Button
-            type="button"
-            disabled={!title.trim() || saveMutation.isPending}
-            onClick={() => saveMutation.mutate()}
-          >
-            {saveMutation.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Create question'}
-          </Button>
-        </CardContent>
+              <Button
+                type="submit"
+                className={formFooterButtonClassName}
+                disabled={saveMutation.isPending || uploadMutation.isPending}
+              >
+                {saveMutation.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {isEdit ? 'Saving…' : 'Creating…'}
+                  </>
+                ) : isEdit ? (
+                  'Save changes'
+                ) : (
+                  'Create question'
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
       </Card>
     </div>
   )
