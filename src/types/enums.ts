@@ -15,3 +15,5 @@ export type AudienceTargetType =
   | 'CLASS'
 
 export type PollResultVisibility = 'AFTER_VOTE' | 'AFTER_EXPIRY' | 'NEVER'
+
+export type PollTag = 'active' | 'expired' | 'participated'
