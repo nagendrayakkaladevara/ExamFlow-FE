@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { APP_NAME } from '@/config/constants'
 import { getNavItemsForRole } from '@/config/navigation'
 import { useAuthStore } from '@/features/auth/store'
+import { InstitutionLogo } from '@/components/layout/institution-logo'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
@@ -37,6 +38,7 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
         <h1 className="text-base font-medium">{title}</h1>
+        <InstitutionLogo className="ml-auto hidden sm:block" />
       </div>
     </header>
   )

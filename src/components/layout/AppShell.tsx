@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { InstitutionLogo } from '@/components/layout/institution-logo'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 
@@ -29,7 +30,8 @@ export function AppShell() {
 
 export function ExamLayout() {
   return (
-    <div className="min-h-svh bg-background">
+    <div className="relative min-h-svh bg-background">
+      <InstitutionLogo className="absolute top-4 right-4 z-10 sm:top-6 sm:right-6" />
       <Outlet />
     </div>
   )
@@ -37,7 +39,8 @@ export function ExamLayout() {
 
 export function PublicLayout() {
   return (
-    <div className="min-h-svh">
+    <div className="relative min-h-svh">
+      <InstitutionLogo className="absolute top-4 right-4 z-10 sm:top-6 sm:right-6" />
       <Outlet />
     </div>
   )
