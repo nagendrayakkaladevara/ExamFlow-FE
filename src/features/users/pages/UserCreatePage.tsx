@@ -37,6 +37,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StudentBulkImport } from '@/features/users/components/StudentBulkImport'
 import { usersApi } from '@/features/users/api'
 import { isApiError } from '@/lib/errors'
+import { cn } from '@/lib/utils'
+
+const formFooterClassName =
+  'flex flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:px-6'
+const formFooterButtonClassName = 'min-h-11 w-full sm:min-h-9 sm:w-auto'
 
 const createUserSchema = z.object({
   email: z.email('Enter a valid email'),
@@ -238,8 +243,20 @@ function SingleUserForm() {
             </FieldGroup>
           </CardContent>
 
-          <CardFooter className="justify-end border-t bg-muted/20 py-4">
-            <Button type="submit" disabled={mutation.isPending}>
+          <CardFooter className={formFooterClassName}>
+            <Button
+              type="button"
+              variant="secondary"
+              className={cn(formFooterButtonClassName, 'sm:hidden')}
+              asChild
+            >
+              <Link to="/admin/users">Cancel</Link>
+            </Button>
+            <Button
+              type="submit"
+              className={formFooterButtonClassName}
+              disabled={mutation.isPending}
+            >
               {mutation.isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
@@ -270,7 +287,14 @@ export function UserCreatePage() {
             : 'Create a single lecturer or student account.'
         }
         actions={
-          <Button variant="outline" asChild>
+          <Button
+            variant="secondary"
+            className={cn(
+              formFooterButtonClassName,
+              activeTab === 'single' && 'hidden sm:inline-flex',
+            )}
+            asChild
+          >
             <Link to="/admin/users">Cancel</Link>
           </Button>
         }

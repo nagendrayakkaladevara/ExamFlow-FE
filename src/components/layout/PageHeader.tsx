@@ -15,7 +15,11 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
           <p className="text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end [&_[data-slot=button]]:min-h-11 [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:min-h-9 sm:[&_[data-slot=button]]:w-auto">
+          {actions}
+        </div>
+      ) : null}
     </div>
   )
 }
