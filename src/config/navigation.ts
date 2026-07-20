@@ -62,6 +62,12 @@ export const navigationItems: NavItem[] = [
     roles: ['LECTURER'],
   },
   {
+    title: 'Classes',
+    href: '/lecturer/classes',
+    icon: GraduationCap,
+    roles: ['LECTURER'],
+  },
+  {
     title: 'Question Bank',
     href: '/lecturer/questions',
     icon: BookOpen,
@@ -95,6 +101,12 @@ export const navigationItems: NavItem[] = [
     title: 'Dashboard',
     href: '/student',
     icon: LayoutDashboard,
+    roles: ['STUDENT'],
+  },
+  {
+    title: 'Classes',
+    href: '/student/classes',
+    icon: GraduationCap,
     roles: ['STUDENT'],
   },
   {

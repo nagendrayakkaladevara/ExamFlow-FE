@@ -42,4 +42,6 @@ export const classesApi = {
     api.post<{ enrolled: boolean }>(`/classes/${classId}/students`, { userId }),
 
   listAssigned: () => api.get<ClassRecord[]>('/classes/assigned'),
+
+  listEnrolled: () => api.get<ClassRecord[]>('/classes/enrolled'),
 }

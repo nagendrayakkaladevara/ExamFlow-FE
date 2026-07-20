@@ -108,6 +108,8 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { index: true, element: <RoleDashboardPage /> },
+              { path: 'classes', element: <ClassesPage /> },
+              { path: 'classes/:id', element: <ClassDetailPage /> },
               { path: 'questions', element: <QuestionsPage /> },
               { path: 'questions/new', element: <QuestionFormPage /> },
               { path: 'questions/:id/edit', element: <QuestionFormPage /> },
@@ -133,6 +135,8 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { index: true, element: <RoleDashboardPage /> },
+              { path: 'classes', element: <ClassesPage /> },
+              { path: 'classes/:id', element: <ClassDetailPage /> },
               { path: 'assignments', element: <AssignmentsPage /> },
               { path: 'assignments/:id', element: <AssignmentDetailPage /> },
               { path: 'assignments/:id/result', element: <AssignmentResultPage /> },
