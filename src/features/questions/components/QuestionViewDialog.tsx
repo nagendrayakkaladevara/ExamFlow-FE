@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2, Pencil } from 'lucide-react'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,8 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import { questionsApi } from '@/features/questions/api'
 import { queryKeys } from '@/config/query-keys'
+import { formatDate } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 interface QuestionViewDialogProps {
   questionId: string | null
@@ -21,7 +26,29 @@ interface QuestionViewDialogProps {
 }
 
 function formatLabel(value: string): string {
-  return value.replaceAll('_', ' ').toLowerCase()
+  const formatted = value.replaceAll('_', ' ').toLowerCase()
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+}
+
+function optionLabel(index: number): string {
+  return String.fromCharCode(65 + index)
+}
+
+function DetailSection({
+  title,
+  children,
+  className,
+}: {
+  title: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <section className={cn('space-y-3', className)}>
+      <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</h3>
+      {children}
+    </section>
+  )
 }
 
 export function QuestionViewDialog({
@@ -39,98 +66,132 @@ export function QuestionViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(36rem,calc(100svh-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
-        <DialogHeader className="shrink-0 border-b px-4 py-4 text-left sm:px-6">
-          <DialogTitle>{question?.title ?? 'Question details'}</DialogTitle>
+      <DialogContent className="flex max-h-[min(44rem,calc(100svh-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogHeader className="shrink-0 space-y-3 border-b px-4 py-5 text-left sm:px-6">
+          <DialogTitle className="text-xl font-semibold leading-snug">
+            {question?.title?.trim() || 'Question details'}
+          </DialogTitle>
+          {question ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary">{formatLabel(question.type)}</Badge>
+              <Badge variant="outline">{formatLabel(question.difficulty)}</Badge>
+              <Badge variant="outline">{question.defaultMarks} marks</Badge>
+              {question.subject ? (
+                <span className="text-xs text-muted-foreground">{question.subject}</span>
+              ) : null}
+              {question.topic ? (
+                <span className="text-xs text-muted-foreground">· {question.topic}</span>
+              ) : null}
+              <span className="text-xs text-muted-foreground">
+                Updated {formatDate(question.updatedAt)}
+              </span>
+            </div>
+          ) : null}
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-          {questionQuery.isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label="Loading question" />
-            </div>
-          ) : null}
-
-          {questionQuery.error ? (
-            <QueryError error={questionQuery.error} onRetry={() => questionQuery.refetch()} />
-          ) : null}
-
-          {question ? (
-            <div className="space-y-5">
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{formatLabel(question.type)}</Badge>
-                <Badge variant="outline">{formatLabel(question.difficulty)}</Badge>
-                <Badge variant="outline">{question.defaultMarks} marks</Badge>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Description</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{question.description}</p>
-              </div>
-
-              {question.imageUrl ? (
-                <img
-                  src={question.imageUrl}
-                  alt=""
-                  className="max-h-48 w-full rounded-lg border object-contain"
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="space-y-8 px-4 py-6 sm:px-6">
+            {questionQuery.isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2
+                  className="size-6 animate-spin text-muted-foreground"
+                  aria-label="Loading question"
                 />
-              ) : null}
+              </div>
+            ) : null}
 
-              {question.type === 'FILL_BLANK' ? (
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Correct answer</p>
-                  <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">{question.correctText}</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Options</p>
-                  <ul className="space-y-2">
-                    {(question.options ?? []).map((option) => (
-                      <li
-                        key={option.id}
-                        className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
-                      >
-                        <span className="min-w-0 flex-1">{option.optionText}</span>
-                        {option.isCorrect ? (
-                          <Badge variant="default" className="shrink-0">
-                            Correct
-                          </Badge>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+            {questionQuery.error ? (
+              <QueryError error={questionQuery.error} onRetry={() => questionQuery.refetch()} />
+            ) : null}
 
-              {question.explanation ? (
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Explanation</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{question.explanation}</p>
-                </div>
-              ) : null}
-
-              {(question.subject || question.topic) ? (
-                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                  {question.subject ? <span>Subject: {question.subject}</span> : null}
-                  {question.topic ? <span>Topic: {question.topic}</span> : null}
-                </div>
-              ) : null}
-
-              {(question.tags ?? []).length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Tags</p>
-                  <div className="flex flex-wrap gap-1">
-                    {(question.tags ?? []).map((tag) => (
-                      <Badge key={tag.id} variant="secondary">
-                        {tag.name}
-                      </Badge>
-                    ))}
+            {question ? (
+              <>
+                <DetailSection title="Question">
+                  <div className="rounded-lg border bg-muted/20 p-4 sm:p-5">
+                    <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
+                      {question.description}
+                    </p>
+                    {question.imageUrl ? (
+                      <img
+                        src={question.imageUrl}
+                        alt=""
+                        className="mt-4 max-h-64 w-full rounded-md border bg-background object-contain"
+                      />
+                    ) : null}
                   </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+                </DetailSection>
+
+                {question.type === 'FILL_BLANK' ? (
+                  <DetailSection title="Correct answer">
+                    <div className="rounded-lg border bg-emerald-50/60 px-4 py-3 text-base leading-relaxed">
+                      {question.correctText}
+                    </div>
+                  </DetailSection>
+                ) : (
+                  <DetailSection title="Answer options">
+                    <ul className="space-y-2">
+                      {(question.options ?? []).map((option, index) => (
+                        <li
+                          key={option.id}
+                          className={cn(
+                            'flex items-start gap-3 rounded-lg border px-4 py-3 text-base leading-relaxed',
+                            option.isCorrect
+                              ? 'border-emerald-200 bg-emerald-50/60'
+                              : 'bg-background',
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'flex size-7 shrink-0 items-center justify-center rounded-md border text-sm font-medium',
+                              option.isCorrect
+                                ? 'border-emerald-300 bg-emerald-100 text-emerald-900'
+                                : 'bg-muted/40 text-muted-foreground',
+                            )}
+                          >
+                            {optionLabel(index)}
+                          </span>
+                          <span className="min-w-0 flex-1 pt-0.5">{option.optionText}</span>
+                          {option.isCorrect ? (
+                            <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-700">
+                              <CheckCircle2 className="size-3.5" aria-hidden />
+                              Correct
+                            </span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </DetailSection>
+                )}
+
+                {question.explanation ? (
+                  <>
+                    <Separator />
+                    <DetailSection title="Explanation">
+                      <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                        {question.explanation}
+                      </p>
+                    </DetailSection>
+                  </>
+                ) : null}
+
+                {(question.tags ?? []).length > 0 ? (
+                  <>
+                    <Separator />
+                    <DetailSection title="Tags">
+                      <div className="flex flex-wrap gap-2">
+                        {(question.tags ?? []).map((tag) => (
+                          <Badge key={tag.id} variant="secondary">
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </DetailSection>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </ScrollArea>
 
         {question ? (
           <DialogFooter className="shrink-0 border-t px-4 py-4 sm:px-6">
@@ -138,7 +199,10 @@ export function QuestionViewDialog({
               Close
             </Button>
             <Button asChild>
-              <Link to={`/lecturer/questions/${question.id}/edit`}>Edit question</Link>
+              <Link to={`/lecturer/questions/${question.id}/edit`}>
+                <Pencil className="size-4" />
+                Edit question
+              </Link>
             </Button>
           </DialogFooter>
         ) : null}

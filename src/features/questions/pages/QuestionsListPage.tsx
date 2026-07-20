@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, Loader2, Plus, Tags, X } from 'lucide-react'
+import { ChevronDown, Plus, Tags, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
@@ -23,15 +23,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { QuestionViewDialog } from '@/features/questions/components/QuestionViewDialog'
+import { QuestionsDataGrid } from '@/features/questions/components/QuestionsDataGrid'
 import { questionsApi } from '@/features/questions/api'
 import { tagsApi } from '@/features/tags/api'
 import { queryKeys } from '@/config/query-keys'
@@ -105,6 +98,10 @@ export function QuestionsListPage() {
 
   const selectedTagRecords = tags.filter((tag) => selectedTags.includes(tag.id))
   const isLoadingQuestions = questionsQuery.isLoading || questionsQuery.isFetching
+
+  const handleViewQuestion = useCallback((questionId: string) => {
+    setViewQuestionId(questionId)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -218,59 +215,11 @@ export function QuestionsListPage() {
       ) : null}
 
       {questionsQuery.data && questionsQuery.data.length > 0 ? (
-        <div className="relative rounded-lg border">
-          {isLoadingQuestions ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/60 backdrop-blur-[1px]">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label="Loading questions" />
-            </div>
-          ) : null}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Difficulty</TableHead>
-                <TableHead>Marks</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {questionsQuery.data.map((question) => (
-                <TableRow key={question.id}>
-                  <TableCell className="font-medium">{question.title}</TableCell>
-                  <TableCell>{question.type.replace('_', ' ').toLowerCase()}</TableCell>
-                  <TableCell>{question.difficulty.toLowerCase()}</TableCell>
-                  <TableCell>{question.defaultMarks}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(question.tags ?? []).map((tag) => (
-                        <Badge key={tag.id} variant="secondary">
-                          {tag.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setViewQuestionId(question.id)}
-                      >
-                        View
-                      </Button>
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={`/lecturer/questions/${question.id}/edit`}>Edit</Link>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <QuestionsDataGrid
+          questions={questionsQuery.data}
+          loading={isLoadingQuestions}
+          onView={handleViewQuestion}
+        />
       ) : null}
 
       <QuestionViewDialog
