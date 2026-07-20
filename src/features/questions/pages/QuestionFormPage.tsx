@@ -57,14 +57,14 @@ import { isApiError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 
 const formFooterClassName =
-  'sticky bottom-0 z-10 flex flex-col gap-3 border-t bg-background/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:static sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:bg-muted/20 sm:px-6 sm:pb-4 sm:backdrop-blur-none'
-const formFooterButtonClassName = 'min-h-11 w-full sm:min-h-9 sm:w-auto'
+  'flex w-full min-w-0 flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:px-6'
+const formFooterButtonClassName = 'min-h-11 w-full max-w-full sm:min-h-9 sm:w-auto'
 const touchInputClassName = 'h-11 text-base sm:h-9 sm:text-sm'
 const optionRowClassName =
   'flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4'
 const optionActionsClassName =
-  'flex items-center gap-2 border-t border-border pt-3 sm:border-0 sm:pt-0'
-const touchIconButtonClassName = 'min-h-11 min-w-11 shrink-0 sm:min-h-8 sm:min-w-8'
+  'flex w-full min-w-0 items-center gap-2 border-t border-border pt-3 sm:w-auto sm:border-0 sm:pt-0'
+const touchIconButtonClassName = 'size-11 shrink-0 sm:size-8'
 
 const defaultValues: QuestionFormValues = {
   type: 'SINGLE_CHOICE',
@@ -253,7 +253,7 @@ export function QuestionFormPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-4 sm:space-y-8 sm:pb-0">
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6 pb-4 sm:space-y-8 sm:pb-0">
       <PageHeader
         title={isEdit ? 'Edit question' : 'New question'}
         description={
@@ -272,9 +272,10 @@ export function QuestionFormPage() {
         }
       />
 
-      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+      <Card className="w-full min-w-0 gap-0 overflow-hidden py-0 shadow-sm">
         <Form {...form}>
           <form
+            className="min-w-0"
             onSubmit={form.handleSubmit(
               (values) => {
                 setSubmitError(null)
@@ -285,7 +286,7 @@ export function QuestionFormPage() {
               },
             )}
           >
-            <CardContent className="space-y-0 px-4 pt-4 sm:px-6 sm:pt-6">
+            <CardContent className="min-w-0 space-y-0 px-4 pt-4 sm:px-6 sm:pt-6">
               {submitError ? (
                 <Alert variant="destructive" className="mb-6">
                   <AlertDescription>{submitError}</AlertDescription>
