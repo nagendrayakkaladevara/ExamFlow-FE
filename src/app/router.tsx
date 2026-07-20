@@ -25,6 +25,7 @@ import {
   QuestionFormPage,
   QuestionsPage,
   RoleDashboardPage,
+  SettingsPage,
   TakeAssignmentPage,
   UserCreatePage,
   UserDetailPage,
@@ -69,6 +70,11 @@ export const router = createBrowserRouter([
         path: '/account/password',
         element: <AppShell />,
         children: [{ index: true, element: <ChangePasswordPage /> }],
+      },
+      {
+        path: '/account/settings',
+        element: <AppShell />,
+        children: [{ index: true, element: <SettingsPage /> }],
       },
       {
         path: '/admin',

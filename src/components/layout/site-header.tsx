@@ -20,6 +20,7 @@ function getPageTitle(pathname: string): string {
 
   if (match) return match.title
   if (pathname === '/account/password') return 'Change password'
+  if (pathname === '/account/settings') return 'Settings'
   return APP_NAME
 }
 
