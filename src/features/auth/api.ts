@@ -7,7 +7,7 @@ export const authApi = {
 
   refresh: () => api.post<RefreshResponse>('/auth/refresh', undefined, { skipAuth: true }),
 
-  logout: () => api.post<void>('/auth/logout'),
+  logout: () => api.post<{ message: string }>('/auth/logout', undefined, { skipRefresh: true }),
 
   me: () => api.get<PublicUser>('/auth/me'),
 

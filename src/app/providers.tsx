@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { FullPageSpinner } from '@/components/feedback/FullPageSpinner'
 import { createQueryClient } from '@/lib/query-client'
-import { useBootstrapAuth } from '@/features/auth/hooks'
+import { useBootstrapAuth, useSessionExpiryHandler } from '@/features/auth/hooks'
 import { router } from '@/app/router'
 import { useAuthStore } from '@/features/auth/store'
 
@@ -15,6 +15,7 @@ const queryClient = createQueryClient()
 function AuthBootstrap({ children }: { children: ReactNode }) {
   const isBootstrapped = useAuthStore((s) => s.isBootstrapped)
   useBootstrapAuth()
+  useSessionExpiryHandler()
 
   if (!isBootstrapped) {
     return <FullPageSpinner />

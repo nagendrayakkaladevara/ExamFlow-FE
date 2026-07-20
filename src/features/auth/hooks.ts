@@ -1,12 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { authApi } from '@/features/auth/api'
+import {
+  registerSessionExpiredHandler,
+  startTokenLifecycle,
+  stopTokenLifecycle,
+} from '@/features/auth/refresh'
 import { useAuthStore } from '@/features/auth/store'
 import type { ChangePasswordFormValues, LoginFormValues } from '@/features/auth/schemas'
 import { getRoleHomePath, sanitizeReturnPath } from '@/lib/api-client'
 import { isApiError } from '@/lib/errors'
 import { queryKeys } from '@/config/query-keys'
+
+export function useSessionExpiryHandler() {
+  useEffect(() => {
+    registerSessionExpiredHandler(() => {
+      if (window.location.pathname === '/login') return
+
+      const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`)
+      window.location.assign(`/login?next=${next}`)
+    })
+  }, [])
+}
 
 export function useBootstrapAuth() {
   const setSession = useAuthStore((s) => s.setSession)
@@ -19,9 +36,11 @@ export function useBootstrapAuth() {
       try {
         const refresh = await authApi.refresh()
         const user = await authApi.me()
-        setSession(refresh.accessToken, user)
+        setSession(refresh.accessToken, user, refresh.expiresIn)
+        startTokenLifecycle(refresh.expiresIn)
         return user
       } catch {
+        stopTokenLifecycle()
         clearSession()
         return null
       } finally {
@@ -40,7 +59,8 @@ export function useLoginMutation(returnPath?: string | null) {
   return useMutation({
     mutationFn: (values: LoginFormValues) => authApi.login(values),
     onSuccess: (data) => {
-      setSession(data.accessToken, data.user)
+      setSession(data.accessToken, data.user, data.expiresIn)
+      startTokenLifecycle(data.expiresIn)
       const safeNext = sanitizeReturnPath(returnPath ?? null)
       navigate(safeNext ?? getRoleHomePath(data.user.role))
       toast.success('Welcome back!')
@@ -59,6 +79,7 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSettled: () => {
+      stopTokenLifecycle()
       clearSession()
       queryClient.clear()
       navigate('/login')
@@ -77,6 +98,7 @@ export function useChangePasswordMutation() {
         newPassword: values.newPassword,
       }),
     onSuccess: () => {
+      stopTokenLifecycle()
       clearSession()
       toast.success('Password updated. Please sign in again.')
       navigate('/login')

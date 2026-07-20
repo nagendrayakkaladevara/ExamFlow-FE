@@ -6,6 +6,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Invalid email or password.',
   ACCOUNT_LOCKED: 'Account temporarily locked. Try again later.',
   INVALID_REFRESH_TOKEN: 'Session expired. Please sign in again.',
+  REFRESH_TOKEN_EXPIRED: 'Session expired. Please sign in again.',
   REFRESH_TOKEN_REUSE: 'Session invalidated for security. Please sign in again.',
   FORBIDDEN: 'You do not have permission to perform this action.',
   CORS_DENIED: 'Unable to connect from this origin.',
