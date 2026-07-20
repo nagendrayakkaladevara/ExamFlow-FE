@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { KeyRound, LogOut, MoreVertical } from 'lucide-react'
+import { KeyRound, LogOut, MoreVertical, Settings } from 'lucide-react'
 
 import { useLogoutMutation } from '@/features/auth/hooks'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -41,6 +41,11 @@ export function NavUser({
   const handleChangePassword = () => {
     closeMobileSidebar()
     navigate('/account/password')
+  }
+
+  const handleSettings = () => {
+    closeMobileSidebar()
+    navigate('/account/settings')
   }
 
   return (
@@ -88,6 +93,10 @@ export function NavUser({
               <DropdownMenuItem onClick={handleChangePassword}>
                 <KeyRound />
                 Change password
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSettings}>
+                <Settings />
+                Settings
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

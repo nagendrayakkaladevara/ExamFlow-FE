@@ -1,4 +1,5 @@
 export { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage'
+export { SettingsPage } from '@/features/settings/pages/SettingsPage'
 export { UsersListPage as UsersPage } from '@/features/users/pages/UsersListPage'
 export { UserCreatePage } from '@/features/users/pages/UserCreatePage'
 export { UserDetailPage } from '@/features/users/pages/UserDetailPage'
