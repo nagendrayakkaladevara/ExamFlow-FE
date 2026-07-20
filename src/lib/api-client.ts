@@ -3,6 +3,7 @@ import { getCsrfHeaders } from '@/lib/csrf'
 import { ApiError } from '@/lib/errors'
 import type { ApiResponse } from '@/types/api'
 import { useAuthStore } from '@/features/auth/store'
+import { refreshAccessToken } from '@/features/auth/refresh'
 
 const API_PREFIX = '/api/v1'
 const DEFAULT_TIMEOUT_MS = 30_000
@@ -17,8 +18,6 @@ interface RequestOptions {
   skipAuth?: boolean
   skipRefresh?: boolean
 }
-
-let refreshPromise: Promise<string | null> | null = null
 
 function buildUrl(path: string, params?: RequestOptions['params']): string {
   const url = new URL(`${env.VITE_API_BASE_URL}${API_PREFIX}${path}`)
@@ -62,37 +61,6 @@ async function parseResponse<T>(response: Response): Promise<T> {
 export interface PaginatedResult<T> {
   data: T[]
   meta?: Record<string, unknown>
-}
-
-async function refreshAccessToken(): Promise<string | null> {
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      try {
-        const response = await fetch(
-          buildUrl('/auth/refresh'),
-          {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getCsrfHeaders(),
-            },
-          },
-        )
-
-        const data = await parseResponse<{ accessToken: string }>(response)
-        useAuthStore.getState().setAccessToken(data.accessToken)
-        return data.accessToken
-      } catch {
-        useAuthStore.getState().clearSession()
-        return null
-      } finally {
-        refreshPromise = null
-      }
-    })()
-  }
-
-  return refreshPromise
 }
 
 async function request<T>(

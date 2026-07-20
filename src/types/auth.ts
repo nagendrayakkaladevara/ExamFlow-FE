@@ -24,9 +24,11 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
   accessToken: string
+  expiresIn: string
   user: PublicUser
 }
 
 export interface RefreshResponse {
   accessToken: string
+  expiresIn: string
 }
