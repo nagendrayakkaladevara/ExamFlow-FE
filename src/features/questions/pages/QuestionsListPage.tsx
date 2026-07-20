@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useDebounce } from '@/hooks/useDebounce'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Plus, Tags, X } from 'lucide-react'
@@ -33,6 +34,7 @@ import { isApiError } from '@/lib/errors'
 export function QuestionsListPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagsOpen, setTagsOpen] = useState(false)
   const [newTagName, setNewTagName] = useState('')
@@ -46,11 +48,11 @@ export function QuestionsListPage() {
   const tagIdsParam = selectedTags.length > 0 ? selectedTags.join(',') : undefined
 
   const questionsQuery = useQuery({
-    queryKey: queryKeys.questions.list({ search, tags: selectedTags }),
+    queryKey: queryKeys.questions.list({ search: debouncedSearch, tags: selectedTags }),
     queryFn: async () => {
-      const result = search || tagIdsParam
+      const result = debouncedSearch || tagIdsParam
         ? await questionsApi.search({
-            q: search || undefined,
+            q: debouncedSearch || undefined,
             tagIds: tagIdsParam,
             limit: 50,
           })

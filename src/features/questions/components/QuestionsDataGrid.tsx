@@ -25,22 +25,14 @@ function formatLabel(value: string): string {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }
 
-function QuestionPreviewCell({ data }: ICellRendererParams<QuestionRecord>) {
+function QuestionTitleCell({ data }: ICellRendererParams<QuestionRecord>) {
   if (!data) return null
 
-  const preview = data.description?.trim() || data.title
-  const showTitle = data.title && data.title !== data.description
-
   return (
-    <div className="flex min-w-0 flex-col justify-center gap-0.5 py-1">
-      <span className="truncate text-sm font-medium" title={preview}>
-        {preview}
+    <div className="flex min-w-0 items-center py-1">
+      <span className="truncate text-sm font-medium" title={data.title}>
+        {data.title}
       </span>
-      {showTitle ? (
-        <span className="truncate text-xs text-muted-foreground" title={data.title}>
-          {data.title}
-        </span>
-      ) : null}
     </div>
   )
 }
@@ -101,11 +93,11 @@ export function QuestionsDataGrid({ questions, loading, onView }: QuestionsDataG
     () => [
       {
         headerName: 'Question',
-        field: 'description',
+        field: 'title',
         flex: 2,
         minWidth: 240,
-        cellRenderer: QuestionPreviewCell,
-        tooltipValueGetter: (params) => params.data?.description || params.data?.title || '',
+        cellRenderer: QuestionTitleCell,
+        tooltipValueGetter: (params) => params.data?.title ?? '',
       },
       {
         headerName: 'Type',
