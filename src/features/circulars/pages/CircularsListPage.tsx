@@ -5,19 +5,25 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { circularsApi } from '@/features/circulars/api'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
+
+function CircularFeedSkeleton() {
+  return (
+    <div className="divide-y rounded-lg border">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="space-y-2 px-6 py-4">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export function CircularsListPage() {
   const role = useAuthStore((s) => s.user?.role)
@@ -49,7 +55,7 @@ export function CircularsListPage() {
         }
       />
 
-      {query.isLoading ? <Skeleton className="h-64 w-full" /> : null}
+      {query.isLoading ? <CircularFeedSkeleton /> : null}
       {query.error ? <QueryError error={query.error} onRetry={() => query.refetch()} /> : null}
 
       {query.data?.length === 0 ? (
@@ -57,29 +63,24 @@ export function CircularsListPage() {
       ) : null}
 
       {query.data && query.data.length > 0 ? (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Published</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {query.data.map((circular) => (
-                <TableRow key={circular.id}>
-                  <TableCell className="font-medium">{circular.title}</TableCell>
-                  <TableCell>{formatDateTime(circular.publishAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild variant="ghost" size="sm">
-                      <Link to={`${basePath}/circulars/${circular.id}`}>View</Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="divide-y rounded-lg border bg-card">
+          {query.data.map((circular) => (
+            <Link
+              key={circular.id}
+              to={`${basePath}/circulars/${circular.id}`}
+              className="block px-6 py-4 transition-colors hover:bg-muted/40"
+            >
+              <p className="text-sm font-medium">{circular.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Published {formatDateTime(circular.publishAt)}
+              </p>
+              {circular.description ? (
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                  {circular.description}
+                </p>
+              ) : null}
+            </Link>
+          ))}
         </div>
       ) : null}
     </div>
