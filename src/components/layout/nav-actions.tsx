@@ -5,9 +5,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 
 export function NavActions({ quickCreateHref }: { quickCreateHref: string }) {
+  const { closeMobileSidebar } = useSidebar()
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -16,7 +19,7 @@ export function NavActions({ quickCreateHref }: { quickCreateHref: string }) {
           tooltip="Quick Create"
           className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
         >
-          <Link to={quickCreateHref}>
+          <Link to={quickCreateHref} onClick={closeMobileSidebar}>
             <CirclePlus />
             <span>Quick Create</span>
           </Link>

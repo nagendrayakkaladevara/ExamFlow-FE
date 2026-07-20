@@ -7,6 +7,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 
 export interface NavMainItem {
@@ -17,6 +18,8 @@ export interface NavMainItem {
 }
 
 export function NavMain({ items }: { items: NavMainItem[] }) {
+  const { closeMobileSidebar } = useSidebar()
+
   return (
     <SidebarGroup>
       <SidebarGroupContent>
@@ -30,7 +33,7 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                   tooltip={item.title}
                   isActive={item.isActive}
                 >
-                  <Link to={item.href}>
+                  <Link to={item.href} onClick={closeMobileSidebar}>
                     <Icon />
                     <span>{item.title}</span>
                   </Link>

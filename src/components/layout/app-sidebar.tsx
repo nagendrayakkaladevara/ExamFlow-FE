@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { GraduationCap } from 'lucide-react'
 
@@ -12,6 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { NavActions } from '@/components/layout/nav-actions'
 import { NavMain } from '@/components/layout/nav-main'
@@ -20,6 +22,11 @@ import { NavUser } from '@/components/layout/nav-user'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAuthStore((s) => s.user)
   const location = useLocation()
+  const { closeMobileSidebar } = useSidebar()
+
+  useEffect(() => {
+    closeMobileSidebar()
+  }, [location.pathname, closeMobileSidebar])
 
   if (!user) return null
 
@@ -42,7 +49,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <Link to={navItems[0]?.href ?? '/'}>
+              <Link
+                to={navItems[0]?.href ?? '/'}
+                onClick={closeMobileSidebar}
+              >
                 <GraduationCap className="size-5!" />
                 <span className="text-base font-semibold">{APP_NAME}</span>
               </Link>

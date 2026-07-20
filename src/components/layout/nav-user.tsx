@@ -32,11 +32,16 @@ export function NavUser({
     email: string
   }
 }) {
-  const { isMobile } = useSidebar()
+  const { isMobile, closeMobileSidebar } = useSidebar()
   const navigate = useNavigate()
   const logout = useLogoutMutation()
   const name = `${user.firstName} ${user.lastName}`
   const initials = getInitials(user.firstName, user.lastName)
+
+  const handleChangePassword = () => {
+    closeMobileSidebar()
+    navigate('/account/password')
+  }
 
   return (
     <SidebarMenu>
@@ -80,7 +85,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => navigate('/account/password')}>
+              <DropdownMenuItem onClick={handleChangePassword}>
                 <KeyRound />
                 Change password
               </DropdownMenuItem>
