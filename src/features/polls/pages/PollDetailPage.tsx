@@ -157,11 +157,11 @@ export function PollDetailPage() {
           ) : null}
 
           {participated && !canVote ? (
-            <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50/60 px-4 py-3">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-              <div>
-                <p className="text-sm font-medium text-emerald-900">You have voted</p>
-                <p className="text-xs text-emerald-700">
+            <div className="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 dark:border-emerald-500/30 dark:bg-emerald-500/10 px-4 py-3">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">You have voted</p>
+                <p className="text-xs text-emerald-700/90 dark:text-emerald-400/90">
                   {expired
                     ? 'This poll has ended. Results are shown below.'
                     : 'Your response has been recorded.'}
