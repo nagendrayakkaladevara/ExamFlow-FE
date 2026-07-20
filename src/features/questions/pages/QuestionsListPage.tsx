@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -83,12 +84,16 @@ export function QuestionsListPage() {
         title="Question Bank"
         description="Create reusable questions and organize them with tags."
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setTagsOpen(true)}>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setTagsOpen(true)}
+            >
               <Tags className="size-4" />
               Manage tags
             </Button>
-            <Button asChild>
+            <Button asChild className="w-full sm:w-auto">
               <Link to="/lecturer/questions/new">
                 <Plus className="size-4" />
                 Add question
@@ -187,40 +192,52 @@ export function QuestionsListPage() {
       ) : null}
 
       <Dialog open={tagsOpen} onOpenChange={setTagsOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="flex max-h-[min(32rem,calc(100svh-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="shrink-0 border-b px-4 py-4 text-left sm:px-6">
             <DialogTitle>Manage tags</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-4 py-4 sm:px-6">
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
               <Input
                 placeholder="New tag name"
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
+                className="min-w-0"
               />
               <Button
                 type="button"
+                className="w-full shrink-0 sm:w-auto"
                 disabled={!newTagName.trim() || createTag.isPending}
                 onClick={() => createTag.mutate()}
               >
                 Add
               </Button>
             </div>
-            <div className="space-y-2">
-              {(tagsQuery.data ?? []).map((tag) => (
-                <div key={tag.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                  <span>{tag.name}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteTag.mutate(tag.id)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="space-y-2 pr-3">
+                {(tagsQuery.data ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No tags yet. Add one above.</p>
+                ) : (
+                  (tagsQuery.data ?? []).map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                    >
+                      <span className="min-w-0 truncate">{tag.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => deleteTag.mutate(tag.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
           </div>
         </DialogContent>
       </Dialog>
