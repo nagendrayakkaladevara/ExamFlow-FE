@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -192,7 +191,7 @@ export function QuestionsListPage() {
       ) : null}
 
       <Dialog open={tagsOpen} onOpenChange={setTagsOpen}>
-        <DialogContent className="flex max-h-[min(32rem,calc(100svh-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogContent className="flex max-h-[min(32rem,calc(100svh-2rem))] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
           <DialogHeader className="shrink-0 border-b px-4 py-4 text-left sm:px-6">
             <DialogTitle>Manage tags</DialogTitle>
           </DialogHeader>
@@ -213,8 +212,8 @@ export function QuestionsListPage() {
                 Add
               </Button>
             </div>
-            <ScrollArea className="min-h-0 flex-1">
-              <div className="space-y-2 pr-3">
+            <div className="h-0 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="space-y-2 pr-1">
                 {(tagsQuery.data ?? []).length === 0 ? (
                   <p className="text-sm text-muted-foreground">No tags yet. Add one above.</p>
                 ) : (
@@ -237,7 +236,7 @@ export function QuestionsListPage() {
                   ))
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
