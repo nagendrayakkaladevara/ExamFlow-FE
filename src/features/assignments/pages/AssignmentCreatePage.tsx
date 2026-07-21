@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -18,6 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
+import { getDurationFitError } from '@/features/assignments/utils'
 import { questionsApi } from '@/features/questions/api'
 import { queryKeys } from '@/config/query-keys'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
@@ -45,6 +46,11 @@ export function AssignmentCreatePage() {
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
   const [resultDeclareAt, setResultDeclareAt] = useState('')
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+
+  const durationFitError = useMemo(
+    () => getDurationFitError(startAt, endAt, durationMinutes),
+    [startAt, endAt, durationMinutes],
+  )
 
   const questionsQuery = useQuery({
     queryKey: queryKeys.questions.list({ scope: 'import' }),
@@ -164,9 +170,13 @@ export function AssignmentCreatePage() {
                 <Input
                   type="number"
                   min={1}
+                  aria-invalid={durationFitError ? true : undefined}
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(Number(e.target.value))}
                 />
+                {durationFitError ? (
+                  <p className="text-sm text-destructive">{durationFitError}</p>
+                ) : null}
               </div>
               <div className="space-y-1">
                 <Label>Results</Label>
@@ -199,7 +209,13 @@ export function AssignmentCreatePage() {
             ) : null}
             <Button
               type="button"
-              disabled={!classId || !title.trim() || !endAt || createMutation.isPending}
+              disabled={
+                !classId ||
+                !title.trim() ||
+                !endAt ||
+                Boolean(durationFitError) ||
+                createMutation.isPending
+              }
               onClick={() => createMutation.mutate()}
             >
               Continue to questions
