@@ -11,17 +11,32 @@ export function getAssignmentWindowMinutes(
   return Math.floor((endMs - startMs) / 60_000)
 }
 
+export function getEndAfterStartError(
+  startAt: string,
+  endAt: string,
+): string | null {
+  if (!startAt || !endAt) return null
+
+  const startMs = new Date(startAt).getTime()
+  const endMs = new Date(endAt).getTime()
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return null
+
+  if (endMs <= startMs) {
+    return 'End time must be after the start time.'
+  }
+
+  return null
+}
+
 export function getDurationFitError(
   startAt: string,
   endAt: string,
   durationMinutes: number,
 ): string | null {
+  if (getEndAfterStartError(startAt, endAt)) return null
+
   const windowMinutes = getAssignmentWindowMinutes(startAt, endAt)
   if (windowMinutes === null) return null
-
-  if (windowMinutes <= 0) {
-    return 'End time must be after the start time.'
-  }
 
   if (!Number.isFinite(durationMinutes) || durationMinutes < 1) {
     return 'Duration must be at least 1 minute.'

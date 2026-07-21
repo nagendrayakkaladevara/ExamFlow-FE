@@ -18,7 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
-import { getDurationFitError, getResultDeclareAtError } from '@/features/assignments/utils'
+import { getDurationFitError, getEndAfterStartError, getResultDeclareAtError } from '@/features/assignments/utils'
 import { questionsApi } from '@/features/questions/api'
 import { queryKeys } from '@/config/query-keys'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
@@ -46,6 +46,11 @@ export function AssignmentCreatePage() {
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
   const [resultDeclareAt, setResultDeclareAt] = useState('')
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+
+  const endAfterStartError = useMemo(
+    () => getEndAfterStartError(startAt, endAt),
+    [startAt, endAt],
+  )
 
   const durationFitError = useMemo(
     () => getDurationFitError(startAt, endAt, durationMinutes),
@@ -154,23 +159,30 @@ export function AssignmentCreatePage() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label>Start</Label>
-                <Input
-                  type="datetime-local"
-                  value={startAt}
-                  onChange={(e) => setStartAt(e.target.value)}
-                />
+            <div className="space-y-1">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Start</Label>
+                  <Input
+                    type="datetime-local"
+                    aria-invalid={endAfterStartError ? true : undefined}
+                    value={startAt}
+                    onChange={(e) => setStartAt(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>End</Label>
+                  <Input
+                    type="datetime-local"
+                    aria-invalid={endAfterStartError ? true : undefined}
+                    value={endAt}
+                    onChange={(e) => setEndAt(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>End</Label>
-                <Input
-                  type="datetime-local"
-                  value={endAt}
-                  onChange={(e) => setEndAt(e.target.value)}
-                />
-              </div>
+              {endAfterStartError ? (
+                <p className="text-sm text-destructive">{endAfterStartError}</p>
+              ) : null}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
@@ -225,6 +237,7 @@ export function AssignmentCreatePage() {
                 !classId ||
                 !title.trim() ||
                 !endAt ||
+                Boolean(endAfterStartError) ||
                 Boolean(durationFitError) ||
                 Boolean(resultDeclareAtError) ||
                 createMutation.isPending
