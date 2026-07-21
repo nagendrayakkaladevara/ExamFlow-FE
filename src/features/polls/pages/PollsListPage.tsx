@@ -4,12 +4,14 @@ import { ArrowRight, Plus } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
+import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PollTagBadge } from '@/features/polls/components/PollTagBadge'
 import { pollsApi } from '@/features/polls/api'
 import { sortPolls, sortPollTags, getPollTags } from '@/features/polls/utils'
 import { queryKeys } from '@/config/query-keys'
+import { ACTIVE_PAGE_POLL_INTERVAL_MS } from '@/config/query-polling'
 import { formatDateTime } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
@@ -49,6 +51,7 @@ export function PollsListPage() {
       const result = await pollsApi.list({ limit: 50 })
       return sortPolls(result.data)
     },
+    refetchInterval: ACTIVE_PAGE_POLL_INTERVAL_MS,
   })
 
   const itemTransition = motionTransition(reducedMotion ?? false, 0.22)
@@ -66,14 +69,17 @@ export function PollsListPage() {
           title="Polls"
           description="Share your opinion on active polls and review past responses."
           actions={
-            canCreate ? (
-              <Button asChild>
-                <Link to={`${basePath}/polls/new`}>
-                  <Plus className="size-4" />
-                  New poll
-                </Link>
-              </Button>
-            ) : undefined
+            <>
+              <RefreshButton onClick={() => query.refetch()} isRefreshing={query.isFetching} />
+              {canCreate ? (
+                <Button asChild>
+                  <Link to={`${basePath}/polls/new`}>
+                    <Plus className="size-4" />
+                    New poll
+                  </Link>
+                </Button>
+              ) : null}
+            </>
           }
         />
       </motion.div>
