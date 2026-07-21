@@ -1,6 +1,74 @@
 import type { AssignmentQuestion } from '@/types/domain'
 import type { LecturerAssignmentAnalytics } from '@/types/domain'
 
+export function getAssignmentWindowMinutes(
+  startAt: string,
+  endAt: string,
+): number | null {
+  if (!startAt || !endAt) return null
+
+  const startMs = new Date(startAt).getTime()
+  const endMs = new Date(endAt).getTime()
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return null
+
+  return Math.floor((endMs - startMs) / 60_000)
+}
+
+export function getEndAfterStartError(
+  startAt: string,
+  endAt: string,
+): string | null {
+  if (!startAt || !endAt) return null
+
+  const startMs = new Date(startAt).getTime()
+  const endMs = new Date(endAt).getTime()
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return null
+
+  if (endMs <= startMs) {
+    return 'End time must be after the start time.'
+  }
+
+  return null
+}
+
+export function getDurationFitError(
+  startAt: string,
+  endAt: string,
+  durationMinutes: number,
+): string | null {
+  if (getEndAfterStartError(startAt, endAt)) return null
+
+  const windowMinutes = getAssignmentWindowMinutes(startAt, endAt)
+  if (windowMinutes === null) return null
+
+  if (!Number.isFinite(durationMinutes) || durationMinutes < 1) {
+    return 'Duration must be at least 1 minute.'
+  }
+
+  if (durationMinutes > windowMinutes) {
+    return `Duration cannot exceed the assignment window (${windowMinutes} minutes between start and end).`
+  }
+
+  return null
+}
+
+export function getResultDeclareAtError(
+  endAt: string,
+  resultDeclareAt: string,
+): string | null {
+  if (!endAt || !resultDeclareAt) return null
+
+  const endMs = new Date(endAt).getTime()
+  const declareMs = new Date(resultDeclareAt).getTime()
+  if (Number.isNaN(endMs) || Number.isNaN(declareMs)) return null
+
+  if (declareMs <= endMs) {
+    return 'Result declaration must be after the assignment end time.'
+  }
+
+  return null
+}
+
 export function sortAssignmentQuestions(questions: AssignmentQuestion[]): AssignmentQuestion[] {
   return [...questions].sort((a, b) => a.sortOrder - b.sortOrder)
 }

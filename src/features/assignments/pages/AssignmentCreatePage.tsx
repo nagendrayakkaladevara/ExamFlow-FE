@@ -1,19 +1,35 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
+import { getDurationFitError, getEndAfterStartError, getResultDeclareAtError } from '@/features/assignments/utils'
 import { questionsApi } from '@/features/questions/api'
 import { queryKeys } from '@/config/query-keys'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import type { ResultPolicy } from '@/types/enums'
 import { isApiError } from '@/lib/errors'
+
+const resultPolicyOptions: { value: ResultPolicy; label: string }[] = [
+  { value: 'IMMEDIATE', label: 'Immediately after submission' },
+  { value: 'AFTER_COMPLETION', label: 'After assignment ends' },
+  { value: 'SCHEDULED', label: 'Scheduled date' },
+]
 
 export function AssignmentCreatePage() {
   const navigate = useNavigate()
@@ -30,6 +46,24 @@ export function AssignmentCreatePage() {
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
   const [resultDeclareAt, setResultDeclareAt] = useState('')
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+
+  const endAfterStartError = useMemo(
+    () => getEndAfterStartError(startAt, endAt),
+    [startAt, endAt],
+  )
+
+  const durationFitError = useMemo(
+    () => getDurationFitError(startAt, endAt, durationMinutes),
+    [startAt, endAt, durationMinutes],
+  )
+
+  const resultDeclareAtError = useMemo(
+    () =>
+      resultPolicy === 'SCHEDULED'
+        ? getResultDeclareAtError(endAt, resultDeclareAt)
+        : null,
+    [resultPolicy, endAt, resultDeclareAt],
+  )
 
   const questionsQuery = useQuery({
     queryKey: queryKeys.questions.list({ scope: 'import' }),
@@ -100,18 +134,18 @@ export function AssignmentCreatePage() {
           <CardContent className="space-y-4 pt-6">
             <div className="space-y-1">
               <Label>Class</Label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-              >
-                <option value="">Select class</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name}{cls.code ? ` (${cls.code})` : ''}
-                  </option>
-                ))}
-              </select>
+              <Select value={classId || undefined} onValueChange={setClassId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}{cls.code ? ` (${cls.code})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Title</Label>
@@ -119,29 +153,36 @@ export function AssignmentCreatePage() {
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
-              <textarea
-                className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+              <Textarea
+                className="min-h-20"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label>Start</Label>
-                <Input
-                  type="datetime-local"
-                  value={startAt}
-                  onChange={(e) => setStartAt(e.target.value)}
-                />
+            <div className="space-y-1">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Start</Label>
+                  <Input
+                    type="datetime-local"
+                    aria-invalid={endAfterStartError ? true : undefined}
+                    value={startAt}
+                    onChange={(e) => setStartAt(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>End</Label>
+                  <Input
+                    type="datetime-local"
+                    aria-invalid={endAfterStartError ? true : undefined}
+                    value={endAt}
+                    onChange={(e) => setEndAt(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>End</Label>
-                <Input
-                  type="datetime-local"
-                  value={endAt}
-                  onChange={(e) => setEndAt(e.target.value)}
-                />
-              </div>
+              {endAfterStartError ? (
+                <p className="text-sm text-destructive">{endAfterStartError}</p>
+              ) : null}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
@@ -149,21 +190,31 @@ export function AssignmentCreatePage() {
                 <Input
                   type="number"
                   min={1}
+                  aria-invalid={durationFitError ? true : undefined}
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(Number(e.target.value))}
                 />
+                {durationFitError ? (
+                  <p className="text-sm text-destructive">{durationFitError}</p>
+                ) : null}
               </div>
               <div className="space-y-1">
                 <Label>Results</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                <Select
                   value={resultPolicy}
-                  onChange={(e) => setResultPolicy(e.target.value as ResultPolicy)}
+                  onValueChange={(value) => setResultPolicy(value as ResultPolicy)}
                 >
-                  <option value="IMMEDIATE">Immediately after submission</option>
-                  <option value="AFTER_COMPLETION">After assignment ends</option>
-                  <option value="SCHEDULED">Scheduled date</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select results policy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {resultPolicyOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             {resultPolicy === 'SCHEDULED' ? (
@@ -171,14 +222,26 @@ export function AssignmentCreatePage() {
                 <Label>Result declare at</Label>
                 <Input
                   type="datetime-local"
+                  aria-invalid={resultDeclareAtError ? true : undefined}
                   value={resultDeclareAt}
                   onChange={(e) => setResultDeclareAt(e.target.value)}
                 />
+                {resultDeclareAtError ? (
+                  <p className="text-sm text-destructive">{resultDeclareAtError}</p>
+                ) : null}
               </div>
             ) : null}
             <Button
               type="button"
-              disabled={!classId || !title.trim() || !endAt || createMutation.isPending}
+              disabled={
+                !classId ||
+                !title.trim() ||
+                !endAt ||
+                Boolean(endAfterStartError) ||
+                Boolean(durationFitError) ||
+                Boolean(resultDeclareAtError) ||
+                createMutation.isPending
+              }
               onClick={() => createMutation.mutate()}
             >
               Continue to questions
@@ -194,15 +257,17 @@ export function AssignmentCreatePage() {
             <div className="space-y-2">
               {(questionsQuery.data ?? []).map((question) => {
                 const selected = selectedQuestions.includes(question.id)
+                const checkboxId = `question-${question.id}`
                 return (
                   <label
                     key={question.id}
+                    htmlFor={checkboxId}
                     className="flex cursor-pointer items-start gap-3 rounded-md border p-3"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
+                      id={checkboxId}
                       checked={selected}
-                      onChange={() =>
+                      onCheckedChange={() =>
                         setSelectedQuestions((prev) =>
                           selected
                             ? prev.filter((id) => id !== question.id)
