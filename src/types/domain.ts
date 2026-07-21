@@ -148,6 +148,15 @@ export interface PollOption {
   sortOrder: number
 }
 
+export interface PollListItem {
+  id: string
+  title: string
+  postedBy: string
+  optionsLabel: string
+  expireAt: string
+  tags: PollTag[]
+}
+
 export interface PollRecord {
   id: string
   title: string

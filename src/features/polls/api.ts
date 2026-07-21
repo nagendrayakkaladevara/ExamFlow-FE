@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client'
-import type { PollRecord, PollResults } from '@/types/domain'
+import type { PollListItem, PollRecord, PollResults } from '@/types/domain'
 import type { AudienceTargetType, PollResultVisibility } from '@/types/enums'
 
 export interface CreatePollInput {
@@ -14,7 +14,7 @@ export interface CreatePollInput {
 
 export const pollsApi = {
   list: (params?: { limit?: number; cursor?: string }) =>
-    api.getList<PollRecord>('/polls', { params }),
+    api.getList<PollListItem>('/polls', { params }),
 
   get: (id: string) => api.get<PollRecord>(`/polls/${id}`),
 
