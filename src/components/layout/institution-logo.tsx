@@ -9,7 +9,7 @@ export function InstitutionLogo({ className }: InstitutionLogoProps) {
     <img
       src="/svecw-logo.webp"
       alt="Shri Vishnu Engineering College for Women"
-      className={cn('h-10 w-auto shrink-0 object-contain', className)}
+      className={cn('h-10 w-auto shrink-0 rounded-md object-contain', className)}
     />
   )
 }
