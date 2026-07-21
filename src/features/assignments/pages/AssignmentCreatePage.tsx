@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -25,7 +26,12 @@ import {
   getStartAtNotInPastError,
 } from '@/features/assignments/utils'
 import { questionsApi } from '@/features/questions/api'
+import { QuestionBankFilterBar } from '@/features/questions/components/QuestionBankFilterBar'
+import { QuestionViewDialog } from '@/features/questions/components/QuestionViewDialog'
+import { QuestionsDataGrid } from '@/features/questions/components/QuestionsDataGrid'
+import { tagsApi } from '@/features/tags/api'
 import { queryKeys } from '@/config/query-keys'
+import { useDebounce } from '@/hooks/useDebounce'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import type { ResultPolicy } from '@/types/enums'
 import { isApiError } from '@/lib/errors'
@@ -51,6 +57,10 @@ export function AssignmentCreatePage() {
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
   const [resultDeclareAt, setResultDeclareAt] = useState('')
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [viewQuestionId, setViewQuestionId] = useState<string | null>(null)
 
   const startAtNotInPastError = useMemo(
     () => getStartAtNotInPastError(startAt),
@@ -75,14 +85,51 @@ export function AssignmentCreatePage() {
     [resultPolicy, endAt, resultDeclareAt],
   )
 
+  const tagsQuery = useQuery({
+    queryKey: queryKeys.tags.all,
+    queryFn: () => tagsApi.list(),
+    enabled: step === 2,
+  })
+
+  const tagIdsParam = selectedTags.length > 0 ? selectedTags.join(',') : undefined
+
   const questionsQuery = useQuery({
-    queryKey: queryKeys.questions.list({ scope: 'import' }),
+    queryKey: queryKeys.questions.list({
+      scope: 'import',
+      search: debouncedSearch,
+      tags: selectedTags,
+    }),
     queryFn: async () => {
-      const result = await questionsApi.list({ limit: 100 })
+      const result = debouncedSearch || tagIdsParam
+        ? await questionsApi.search({
+            q: debouncedSearch || undefined,
+            tagIds: tagIdsParam,
+            limit: 50,
+          })
+        : await questionsApi.list({ limit: 50 })
       return result.data
     },
     enabled: step === 2,
   })
+
+  const tags = tagsQuery.data ?? []
+  const isLoadingQuestions = questionsQuery.isLoading || questionsQuery.isFetching
+
+  function toggleTag(tagId: string) {
+    setSelectedTags((current) =>
+      current.includes(tagId)
+        ? current.filter((id) => id !== tagId)
+        : [...current, tagId],
+    )
+  }
+
+  function removeTag(tagId: string) {
+    setSelectedTags((current) => current.filter((id) => id !== tagId))
+  }
+
+  const handleViewQuestion = useCallback((questionId: string) => {
+    setViewQuestionId(questionId)
+  }, [])
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -128,7 +175,7 @@ export function AssignmentCreatePage() {
   })
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className={step === 1 ? 'mx-auto max-w-3xl space-y-6' : 'space-y-6'}>
       <PageHeader
         title="Create assignment"
         description={step === 1 ? 'Step 1 of 2 — Assignment details' : 'Step 2 of 2 — Import questions'}
@@ -264,42 +311,63 @@ export function AssignmentCreatePage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="space-y-4 pt-6">
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Select questions from your question bank to include in this assignment.
+          </p>
+
+          <QuestionBankFilterBar
+            search={search}
+            onSearchChange={setSearch}
+            tags={tags}
+            selectedTags={selectedTags}
+            onToggleTag={toggleTag}
+            onRemoveTag={removeTag}
+            onClearTags={() => setSelectedTags([])}
+          />
+
+          {questionsQuery.isLoading ? <Skeleton className="h-64 w-full" /> : null}
+          {questionsQuery.error ? (
+            <QueryError error={questionsQuery.error} onRetry={() => questionsQuery.refetch()} />
+          ) : null}
+
+          {questionsQuery.data?.length === 0 && !isLoadingQuestions ? (
+            <EmptyState
+              title="No questions found"
+              description="Try adjusting your search or filters, or add questions in the question bank."
+              action={
+                <Button asChild variant="outline">
+                  <Link to="/lecturer/questions/new">Add question</Link>
+                </Button>
+              }
+            />
+          ) : null}
+
+          {questionsQuery.data && questionsQuery.data.length > 0 ? (
+            <QuestionsDataGrid
+              questions={questionsQuery.data}
+              loading={isLoadingQuestions}
+              onView={handleViewQuestion}
+              selectable
+              selectedIds={selectedQuestions}
+              onSelectionChange={setSelectedQuestions}
+            />
+          ) : null}
+
+          <QuestionViewDialog
+            questionId={viewQuestionId}
+            open={Boolean(viewQuestionId)}
+            onOpenChange={(open) => {
+              if (!open) setViewQuestionId(null)
+            }}
+          />
+
+          <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              Select questions from your question bank to include in this assignment.
+              {selectedQuestions.length === 0
+                ? 'No questions selected'
+                : `${selectedQuestions.length} question${selectedQuestions.length === 1 ? '' : 's'} selected`}
             </p>
-            <div className="space-y-2">
-              {(questionsQuery.data ?? []).map((question) => {
-                const selected = selectedQuestions.includes(question.id)
-                const checkboxId = `question-${question.id}`
-                return (
-                  <label
-                    key={question.id}
-                    htmlFor={checkboxId}
-                    className="flex cursor-pointer items-start gap-3 rounded-md border p-3"
-                  >
-                    <Checkbox
-                      id={checkboxId}
-                      checked={selected}
-                      onCheckedChange={() =>
-                        setSelectedQuestions((prev) =>
-                          selected
-                            ? prev.filter((id) => id !== question.id)
-                            : [...prev, question.id],
-                        )
-                      }
-                    />
-                    <div>
-                      <p className="font-medium">{question.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {question.type.replace('_', ' ').toLowerCase()} · {question.defaultMarks} marks
-                      </p>
-                    </div>
-                  </label>
-                )
-              })}
-            </div>
             <Button
               type="button"
               disabled={selectedQuestions.length === 0 || importMutation.isPending}
@@ -307,8 +375,8 @@ export function AssignmentCreatePage() {
             >
               Finish and publish
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   )
