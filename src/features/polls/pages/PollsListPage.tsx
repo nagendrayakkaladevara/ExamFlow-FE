@@ -114,7 +114,6 @@ export function PollsListPage() {
           >
             {query.data.map((poll, index) => {
               const tags = sortPollTags(getPollTags(poll))
-              const optionCount = poll.options.length
 
               return (
                 <motion.div
@@ -130,17 +129,10 @@ export function PollsListPage() {
                         ))}
                       </div>
 
-                      <div>
-                        <p className="text-sm font-medium">{poll.title}</p>
-                        {poll.description ? (
-                          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                            {poll.description}
-                          </p>
-                        ) : null}
-                      </div>
+                      <p className="text-sm font-medium">{poll.title}</p>
 
                       <p className="text-xs text-muted-foreground">
-                        {optionCount} {optionCount === 1 ? 'option' : 'options'} · Expires{' '}
+                        Posted by {poll.postedBy} · {poll.optionsLabel} · Expires{' '}
                         {formatDateTime(poll.expireAt)}
                       </p>
                     </div>

@@ -1,5 +1,8 @@
-import type { PollRecord } from '@/types/domain'
+import type { PollListItem, PollRecord } from '@/types/domain'
 import type { PollTag } from '@/types/enums'
+
+type PollTagSource = Pick<PollListItem, 'tags'> | Pick<PollRecord, 'tags'>
+type PollSortable = Pick<PollListItem, 'tags' | 'expireAt'> | Pick<PollRecord, 'tags' | 'expireAt'>
 
 const TAG_SORT_ORDER: PollTag[] = ['active', 'participated', 'expired']
 
@@ -11,11 +14,11 @@ const POLL_LIST_PRIORITY = {
   other: 99,
 } as const
 
-export function getPollTags(poll: PollRecord): PollTag[] {
+export function getPollTags(poll: PollTagSource): PollTag[] {
   return poll.tags ?? []
 }
 
-export function hasPollTag(poll: PollRecord, tag: PollTag): boolean {
+export function hasPollTag(poll: PollTagSource, tag: PollTag): boolean {
   return getPollTags(poll).includes(tag)
 }
 
@@ -25,7 +28,7 @@ export function sortPollTags(tags: PollTag[]): PollTag[] {
   )
 }
 
-function getPollListPriority(poll: PollRecord): number {
+function getPollListPriority(poll: PollTagSource): number {
   const tags = getPollTags(poll)
   if (tags.includes('active')) return POLL_LIST_PRIORITY.active
   if (tags.includes('participated') && !tags.includes('expired')) {
@@ -40,7 +43,7 @@ function getPollListPriority(poll: PollRecord): number {
   return POLL_LIST_PRIORITY.other
 }
 
-export function sortPolls(polls: PollRecord[]): PollRecord[] {
+export function sortPolls<T extends PollSortable>(polls: T[]): T[] {
   return [...polls].sort((a, b) => {
     const priorityDiff = getPollListPriority(a) - getPollListPriority(b)
     if (priorityDiff !== 0) return priorityDiff
@@ -48,15 +51,15 @@ export function sortPolls(polls: PollRecord[]): PollRecord[] {
   })
 }
 
-export function canVoteOnPoll(poll: PollRecord): boolean {
+export function canVoteOnPoll(poll: PollTagSource): boolean {
   return hasPollTag(poll, 'active')
 }
 
-export function hasParticipatedInPoll(poll: PollRecord): boolean {
+export function hasParticipatedInPoll(poll: PollTagSource): boolean {
   return hasPollTag(poll, 'participated')
 }
 
-export function isPollExpired(poll: PollRecord): boolean {
+export function isPollExpired(poll: PollTagSource): boolean {
   return hasPollTag(poll, 'expired')
 }
 
