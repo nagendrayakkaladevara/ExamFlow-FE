@@ -5,6 +5,7 @@ import { CheckCircle2, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
+import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -21,6 +22,7 @@ import {
   getPollTags,
 } from '@/features/polls/utils'
 import { queryKeys } from '@/config/query-keys'
+import { ACTIVE_PAGE_POLL_INTERVAL_MS } from '@/config/query-polling'
 import { formatDateTime, formatPercent } from '@/lib/format'
 import { useRoleBasePath } from '@/hooks/useRolePath'
 import { isApiError } from '@/lib/errors'
@@ -36,6 +38,7 @@ export function PollDetailPage() {
     queryKey: [...queryKeys.polls.all, id],
     queryFn: () => pollsApi.get(id),
     enabled: Boolean(id),
+    refetchInterval: ACTIVE_PAGE_POLL_INTERVAL_MS,
   })
 
   const poll = pollQuery.data
@@ -49,6 +52,7 @@ export function PollDetailPage() {
     queryFn: () => pollsApi.results(id),
     enabled: Boolean(id) && showResults,
     retry: false,
+    refetchInterval: showResults ? ACTIVE_PAGE_POLL_INTERVAL_MS : false,
   })
 
   const voteMutation = useMutation({
@@ -61,6 +65,13 @@ export function PollDetailPage() {
       toast.error(isApiError(error) ? error.message : 'Unable to vote.')
     },
   })
+
+  const handleRefresh = () => {
+    void pollQuery.refetch()
+    if (showResults) {
+      void resultsQuery.refetch()
+    }
+  }
 
   useEffect(() => {
     setSelectedOptionId('')
@@ -87,9 +98,15 @@ export function PollDetailPage() {
         title={poll.title}
         description={poll.description ?? undefined}
         actions={
-          <Button variant="outline" asChild>
-            <Link to={`${basePath}/polls`}>Back</Link>
-          </Button>
+          <>
+            <RefreshButton
+              onClick={handleRefresh}
+              isRefreshing={pollQuery.isFetching || resultsQuery.isFetching}
+            />
+            <Button variant="outline" asChild>
+              <Link to={`${basePath}/polls`}>Back</Link>
+            </Button>
+          </>
         }
       />
 

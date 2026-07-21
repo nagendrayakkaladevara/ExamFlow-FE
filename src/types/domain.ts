@@ -148,6 +148,15 @@ export interface PollOption {
   sortOrder: number
 }
 
+export interface PollListItem {
+  id: string
+  title: string
+  postedBy: string
+  optionsLabel: string
+  expireAt: string
+  tags: PollTag[]
+}
+
 export interface PollRecord {
   id: string
   title: string
@@ -196,8 +205,13 @@ export interface LecturerAssignmentAnalytics {
   submitted: number
   completionRate: number
   rankings: {
-    rank: number
+    rank: number | null
     studentId: string
+    studentName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    status?: string | null
     score: number | null
     maxScore: number | null
     submittedAt: string | null

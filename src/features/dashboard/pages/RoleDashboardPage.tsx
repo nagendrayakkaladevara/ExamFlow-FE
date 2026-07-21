@@ -290,7 +290,7 @@ function LecturerDashboard() {
                 <DashboardListItem
                   key={poll.id}
                   title={poll.title}
-                  meta={`Expires ${formatDateTime(poll.expireAt)}`}
+                  meta={`${poll.postedBy} · ${poll.optionsLabel} · Expires ${formatDateTime(poll.expireAt)}`}
                   href={`${basePath}/polls/${poll.id}`}
                 />
               ))

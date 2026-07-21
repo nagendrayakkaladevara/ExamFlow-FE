@@ -8,6 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export interface AudienceValue {
   targetType: AudienceTargetType
@@ -95,38 +102,43 @@ export function AudiencePicker({ role, value, onChange }: AudiencePickerProps) {
             {item.targetType === 'CLASS' ? (
               <div className="flex-1 space-y-1">
                 <Label htmlFor={`class-${index}`}>Class</Label>
-                <select
-                  id={`class-${index}`}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-                  value={item.targetId ?? ''}
-                  onChange={(e) => updateTarget(index, { targetId: e.target.value || null })}
+                <Select
+                  value={item.targetId ?? undefined}
+                  onValueChange={(value) => updateTarget(index, { targetId: value })}
                 >
-                  <option value="">Select class</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}{cls.code ? ` (${cls.code})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id={`class-${index}`} className="w-full">
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                        {cls.code ? ` (${cls.code})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : null}
 
             {item.targetType === 'USER' && role === 'ADMIN' ? (
               <div className="flex-1 space-y-1">
                 <Label htmlFor={`user-${index}`}>User</Label>
-                <select
-                  id={`user-${index}`}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-                  value={item.targetId ?? ''}
-                  onChange={(e) => updateTarget(index, { targetId: e.target.value || null })}
+                <Select
+                  value={item.targetId ?? undefined}
+                  onValueChange={(value) => updateTarget(index, { targetId: value })}
                 >
-                  <option value="">Select user</option>
-                  {(usersQuery.data ?? []).map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName} ({user.role.toLowerCase()})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id={`user-${index}`} className="w-full">
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(usersQuery.data ?? []).map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName} ({user.role.toLowerCase()})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : null}
 
@@ -142,7 +154,7 @@ export function AudiencePicker({ role, value, onChange }: AudiencePickerProps) {
               </div>
             ) : null}
 
-            <Button type="button" variant="ghost" size="sm" onClick={() => removeTarget(index)}>
+            <Button type="button" variant="destructive" size="sm" onClick={() => removeTarget(index)}>
               Remove
             </Button>
           </div>
