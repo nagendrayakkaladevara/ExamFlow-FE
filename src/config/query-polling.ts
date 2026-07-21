@@ -1,0 +1,1 @@
+export const ACTIVE_PAGE_POLL_INTERVAL_MS = 5_000

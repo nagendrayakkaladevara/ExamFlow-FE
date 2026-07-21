@@ -4,10 +4,12 @@ import { Plus } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
+import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { circularsApi } from '@/features/circulars/api'
 import { queryKeys } from '@/config/query-keys'
+import { ACTIVE_PAGE_POLL_INTERVAL_MS } from '@/config/query-polling'
 import { formatDateTime } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
@@ -44,6 +46,7 @@ export function CircularsListPage() {
       const result = await circularsApi.list({ limit: 50 })
       return result.data
     },
+    refetchInterval: ACTIVE_PAGE_POLL_INTERVAL_MS,
   })
 
   const itemTransition = motionTransition(reducedMotion ?? false, 0.22)
@@ -61,14 +64,17 @@ export function CircularsListPage() {
           title="Circulars"
           description="Institution announcements and updates."
           actions={
-            canCreate ? (
-              <Button asChild>
-                <Link to={`${basePath}/circulars/new`}>
-                  <Plus className="size-4" />
-                  New circular
-                </Link>
-              </Button>
-            ) : undefined
+            <>
+              <RefreshButton onClick={() => query.refetch()} isRefreshing={query.isFetching} />
+              {canCreate ? (
+                <Button asChild>
+                  <Link to={`${basePath}/circulars/new`}>
+                    <Plus className="size-4" />
+                    New circular
+                  </Link>
+                </Button>
+              ) : null}
+            </>
           }
         />
       </motion.div>
