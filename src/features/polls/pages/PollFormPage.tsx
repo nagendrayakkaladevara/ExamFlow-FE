@@ -1,49 +1,103 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useFieldArray, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
+import { Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { AudiencePicker } from '@/components/shared/AudiencePicker'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import {
+  FieldDescription,
+  FieldGroup,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+} from '@/components/ui/field'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { AudiencePicker, type AudienceValue } from '@/components/shared/AudiencePicker'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { pollsApi } from '@/features/polls/api'
-import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
+import {
+  pollFormSchema,
+  pollResultVisibilityOptions,
+  type PollFormValues,
+} from '@/features/polls/schemas'
 import { useAuthStore } from '@/features/auth/store'
-import { useRoleBasePath } from '@/hooks/useRolePath'
-import type { PollResultVisibility } from '@/types/enums'
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import { isApiError } from '@/lib/errors'
+import { useRoleBasePath } from '@/hooks/useRolePath'
+import { useState } from 'react'
+
+const formFooterClassName =
+  'flex w-full min-w-0 flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:px-6'
+const formFooterButtonClassName = 'min-h-11 w-full max-w-full sm:min-h-9 sm:w-auto'
+
+const defaultValues: PollFormValues = {
+  title: '',
+  description: '',
+  publishAt: toDatetimeLocalValue(new Date().toISOString()),
+  expireAt: '',
+  resultVisibility: 'AFTER_VOTE',
+  audiences: [],
+  options: [{ optionText: '' }, { optionText: '' }],
+}
 
 export function PollFormPage() {
   const role = useAuthStore((s) => s.user!.role)
   const basePath = useRoleBasePath()
   const navigate = useNavigate()
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [publishAt, setPublishAt] = useState(toDatetimeLocalValue(new Date().toISOString()))
-  const [expireAt, setExpireAt] = useState('')
-  const [resultVisibility, setResultVisibility] = useState<PollResultVisibility>('AFTER_VOTE')
-  const [audiences, setAudiences] = useState<AudienceValue[]>([])
-  const [options, setOptions] = useState(['', ''])
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const form = useForm<PollFormValues>({
+    resolver: zodResolver(pollFormSchema),
+    defaultValues,
+    mode: 'onBlur',
+  })
+
+  const { fields, append } = useFieldArray({
+    control: form.control,
+    name: 'options',
+  })
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: PollFormValues) =>
       pollsApi.create({
-        title,
-        description: description || null,
-        publishAt: fromDatetimeLocalValue(publishAt),
-        expireAt: fromDatetimeLocalValue(expireAt),
-        resultVisibility,
-        audiences,
-        options: options.filter(Boolean).map((optionText, sortOrder) => ({ optionText, sortOrder })),
+        title: values.title,
+        description: values.description || null,
+        publishAt: fromDatetimeLocalValue(values.publishAt),
+        expireAt: fromDatetimeLocalValue(values.expireAt),
+        resultVisibility: values.resultVisibility,
+        audiences: values.audiences,
+        options: values.options
+          .filter((option) => option.optionText.trim())
+          .map((option, sortOrder) => ({ optionText: option.optionText.trim(), sortOrder })),
       }),
     onSuccess: (poll) => {
       toast.success('Poll created.')
       navigate(`${basePath}/polls/${poll.id}`)
     },
     onError: (error) => {
-      toast.error(isApiError(error) ? error.message : 'Unable to create poll.')
+      const message = isApiError(error) ? error.message : 'Unable to create poll.'
+      setSubmitError(message)
+      toast.error(message)
     },
   })
 
@@ -58,78 +112,230 @@ export function PollFormPage() {
           </Button>
         }
       />
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <div className="space-y-1">
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Description</Label>
-            <textarea
-              className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label>Publish at</Label>
-              <Input type="datetime-local" value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Expires at</Label>
-              <Input type="datetime-local" value={expireAt} onChange={(e) => setExpireAt(e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label>Results visibility</Label>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-              value={resultVisibility}
-              onChange={(e) => setResultVisibility(e.target.value as PollResultVisibility)}
-            >
-              <option value="AFTER_VOTE">After voting</option>
-              <option value="AFTER_EXPIRY">After poll expires</option>
-              <option value="NEVER">Admin only</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label>Options</Label>
-            {options.map((option, index) => (
-              <Input
-                key={index}
-                value={option}
-                placeholder={`Option ${index + 1}`}
-                onChange={(e) =>
-                  setOptions((prev) => prev.map((o, i) => (i === index ? e.target.value : o)))
-                }
-              />
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setOptions((prev) => [...prev, ''])}
-            >
-              Add option
-            </Button>
-          </div>
-          <AudiencePicker role={role} value={audiences} onChange={setAudiences} />
-          <Button
-            type="button"
-            disabled={
-              !title.trim() ||
-              !expireAt ||
-              options.filter(Boolean).length < 2 ||
-              audiences.length === 0 ||
-              mutation.isPending
-            }
-            onClick={() => mutation.mutate()}
+
+      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(
+              (values) => {
+                setSubmitError(null)
+                mutation.mutate(values)
+              },
+              () => {
+                setSubmitError('Please fix the highlighted fields below.')
+              },
+            )}
           >
-            Create poll
-          </Button>
-        </CardContent>
+            <CardContent className="space-y-0 px-4 pt-4 sm:px-6 sm:pt-6">
+              {submitError ? (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertDescription>{submitError}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              <FieldGroup className="gap-6">
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Poll details</FieldLegend>
+                    <FieldDescription>
+                      Add a clear title and optional description for your poll.
+                    </FieldDescription>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Which topic should we cover next?" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Optional context for voters."
+                            className="min-h-20"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>Optional supporting details for the poll.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </FieldSet>
+
+                <FieldSeparator />
+
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Schedule</FieldLegend>
+                    <FieldDescription>
+                      Set when the poll goes live and when voting closes.
+                    </FieldDescription>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="publishAt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Publish at</FormLabel>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="expireAt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Expires at</FormLabel>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="resultVisibility"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Results visibility</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select visibility" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {pollResultVisibilityOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </FieldSet>
+
+                <FieldSeparator />
+
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Options</FieldLegend>
+                    <FieldDescription>Add at least two choices for voters.</FieldDescription>
+                  </div>
+
+                  <div className="space-y-3">
+                    {fields.map((item, index) => (
+                      <FormField
+                        key={item.id}
+                        control={form.control}
+                        name={`options.${index}.optionText`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className={index > 0 ? 'sr-only' : undefined}>
+                              Option {index + 1}
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder={`Option ${index + 1}`} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+
+                    {typeof form.formState.errors.options?.message === 'string' ? (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.options.message}
+                      </p>
+                    ) : null}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => append({ optionText: '' })}
+                    >
+                      <Plus className="size-4" />
+                      Add option
+                    </Button>
+                  </div>
+                </FieldSet>
+
+                <FieldSeparator />
+
+                <FieldSet className="gap-4">
+                  <div className="space-y-1">
+                    <FieldLegend variant="legend">Audience</FieldLegend>
+                    <FieldDescription>
+                      Choose who can see and vote on this poll.
+                    </FieldDescription>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="audiences"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <AudiencePicker
+                            role={role}
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </FieldSet>
+              </FieldGroup>
+            </CardContent>
+
+            <CardFooter className={formFooterClassName}>
+              <Button
+                type="submit"
+                className={formFooterButtonClassName}
+                disabled={mutation.isPending}
+              >
+                {mutation.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Creating…
+                  </>
+                ) : (
+                  'Create poll'
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
       </Card>
     </div>
   )

@@ -40,7 +40,6 @@ export function ExamLayout() {
 export function PublicLayout() {
   return (
     <div className="relative min-h-svh">
-      <InstitutionLogo className="absolute top-4 right-4 z-10 sm:top-6 sm:right-6" />
       <Outlet />
     </div>
   )
