@@ -18,7 +18,12 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
-import { getDurationFitError, getEndAfterStartError, getResultDeclareAtError } from '@/features/assignments/utils'
+import {
+  getDurationFitError,
+  getEndAfterStartError,
+  getResultDeclareAtError,
+  getStartAtNotInPastError,
+} from '@/features/assignments/utils'
 import { questionsApi } from '@/features/questions/api'
 import { queryKeys } from '@/config/query-keys'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
@@ -46,6 +51,11 @@ export function AssignmentCreatePage() {
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
   const [resultDeclareAt, setResultDeclareAt] = useState('')
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+
+  const startAtNotInPastError = useMemo(
+    () => getStartAtNotInPastError(startAt),
+    [startAt],
+  )
 
   const endAfterStartError = useMemo(
     () => getEndAfterStartError(startAt, endAt),
@@ -165,10 +175,14 @@ export function AssignmentCreatePage() {
                   <Label>Start</Label>
                   <Input
                     type="datetime-local"
-                    aria-invalid={endAfterStartError ? true : undefined}
+                    min={toDatetimeLocalValue(new Date().toISOString())}
+                    aria-invalid={startAtNotInPastError || endAfterStartError ? true : undefined}
                     value={startAt}
                     onChange={(e) => setStartAt(e.target.value)}
                   />
+                  {startAtNotInPastError ? (
+                    <p className="text-sm text-destructive">{startAtNotInPastError}</p>
+                  ) : null}
                 </div>
                 <div className="space-y-1">
                   <Label>End</Label>
@@ -237,6 +251,7 @@ export function AssignmentCreatePage() {
                 !classId ||
                 !title.trim() ||
                 !endAt ||
+                Boolean(startAtNotInPastError) ||
                 Boolean(endAfterStartError) ||
                 Boolean(durationFitError) ||
                 Boolean(resultDeclareAtError) ||

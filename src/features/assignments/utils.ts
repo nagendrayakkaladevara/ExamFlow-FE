@@ -14,6 +14,23 @@ export function getAssignmentWindowMinutes(
   return Math.floor((endMs - startMs) / 60_000)
 }
 
+export function getStartAtNotInPastError(
+  startAt: string,
+  now: Date = new Date(),
+): string | null {
+  if (!startAt) return null
+
+  const startMs = new Date(startAt).getTime()
+  const nowMs = now.getTime()
+  if (Number.isNaN(startMs)) return null
+
+  if (startMs < nowMs) {
+    return 'Start time must not be in the past.'
+  }
+
+  return null
+}
+
 export function getEndAfterStartError(
   startAt: string,
   endAt: string,
