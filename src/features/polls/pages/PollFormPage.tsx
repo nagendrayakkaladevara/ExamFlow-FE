@@ -43,6 +43,7 @@ import {
 import { useAuthStore } from '@/features/auth/store'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import { isApiError } from '@/lib/errors'
+import { cn } from '@/lib/utils'
 import { useRoleBasePath } from '@/hooks/useRolePath'
 import { useState } from 'react'
 
@@ -126,7 +127,7 @@ export function PollFormPage() {
               },
             )}
           >
-            <CardContent className="space-y-0 px-4 pt-4 sm:px-6 sm:pt-6">
+            <CardContent className="space-y-0 px-4 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-6">
               {submitError ? (
                 <Alert variant="destructive" className="mb-6">
                   <AlertDescription>{submitError}</AlertDescription>
@@ -298,6 +299,7 @@ export function PollFormPage() {
                     </FieldDescription>
                   </div>
 
+                  <div className="mt-2">
                   <FormField
                     control={form.control}
                     name="audiences"
@@ -314,11 +316,12 @@ export function PollFormPage() {
                       </FormItem>
                     )}
                   />
+                  </div>
                 </FieldSet>
               </FieldGroup>
             </CardContent>
 
-            <CardFooter className={formFooterClassName}>
+            <CardFooter className={cn(formFooterClassName, 'mt-2')}>
               <Button
                 type="submit"
                 className={formFooterButtonClassName}
