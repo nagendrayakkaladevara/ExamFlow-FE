@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client'
-import type { ClassRecord } from '@/types/domain'
+import type { ClassMember, ClassRecord } from '@/types/domain'
 
 export interface ListClassesParams {
   isActive?: boolean
@@ -44,4 +44,10 @@ export const classesApi = {
   listAssigned: () => api.get<ClassRecord[]>('/classes/assigned'),
 
   listEnrolled: () => api.get<ClassRecord[]>('/classes/enrolled'),
+
+  listLecturers: (classId: string) =>
+    api.get<ClassMember[]>(`/classes/${classId}/lecturers`),
+
+  listStudents: (classId: string) =>
+    api.get<ClassMember[]>(`/classes/${classId}/students`),
 }
