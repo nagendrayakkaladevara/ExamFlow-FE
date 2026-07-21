@@ -33,3 +33,20 @@ export function getDurationFitError(
 
   return null
 }
+
+export function getResultDeclareAtError(
+  endAt: string,
+  resultDeclareAt: string,
+): string | null {
+  if (!endAt || !resultDeclareAt) return null
+
+  const endMs = new Date(endAt).getTime()
+  const declareMs = new Date(resultDeclareAt).getTime()
+  if (Number.isNaN(endMs) || Number.isNaN(declareMs)) return null
+
+  if (declareMs <= endMs) {
+    return 'Result declaration must be after the assignment end time.'
+  }
+
+  return null
+}

@@ -18,7 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
-import { getDurationFitError } from '@/features/assignments/utils'
+import { getDurationFitError, getResultDeclareAtError } from '@/features/assignments/utils'
 import { questionsApi } from '@/features/questions/api'
 import { queryKeys } from '@/config/query-keys'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
@@ -50,6 +50,14 @@ export function AssignmentCreatePage() {
   const durationFitError = useMemo(
     () => getDurationFitError(startAt, endAt, durationMinutes),
     [startAt, endAt, durationMinutes],
+  )
+
+  const resultDeclareAtError = useMemo(
+    () =>
+      resultPolicy === 'SCHEDULED'
+        ? getResultDeclareAtError(endAt, resultDeclareAt)
+        : null,
+    [resultPolicy, endAt, resultDeclareAt],
   )
 
   const questionsQuery = useQuery({
@@ -202,9 +210,13 @@ export function AssignmentCreatePage() {
                 <Label>Result declare at</Label>
                 <Input
                   type="datetime-local"
+                  aria-invalid={resultDeclareAtError ? true : undefined}
                   value={resultDeclareAt}
                   onChange={(e) => setResultDeclareAt(e.target.value)}
                 />
+                {resultDeclareAtError ? (
+                  <p className="text-sm text-destructive">{resultDeclareAtError}</p>
+                ) : null}
               </div>
             ) : null}
             <Button
@@ -214,6 +226,7 @@ export function AssignmentCreatePage() {
                 !title.trim() ||
                 !endAt ||
                 Boolean(durationFitError) ||
+                Boolean(resultDeclareAtError) ||
                 createMutation.isPending
               }
               onClick={() => createMutation.mutate()}
