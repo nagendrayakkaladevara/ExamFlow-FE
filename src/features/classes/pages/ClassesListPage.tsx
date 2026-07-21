@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
@@ -13,24 +12,50 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { ClassesDataGrid } from '@/features/classes/components/ClassesDataGrid'
 import { classesApi } from '@/features/classes/api'
 import { queryKeys } from '@/config/query-keys'
-import { ActiveBadge } from '@/components/shared/StatusBadge'
+import { useDebounce } from '@/hooks/useDebounce'
 import { isApiError } from '@/lib/errors'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
 import { useClassOptions } from '@/hooks/useClassOptions'
+import type { ClassRecord } from '@/types/domain'
+
+type StatusFilter = 'all' | 'active' | 'inactive'
+
+function filterClasses(
+  classes: ClassRecord[],
+  search: string,
+  statusFilter: StatusFilter,
+): ClassRecord[] {
+  const normalizedSearch = search.trim().toLowerCase()
+
+  return classes.filter((cls) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      cls.name.toLowerCase().includes(normalizedSearch) ||
+      (cls.code?.toLowerCase().includes(normalizedSearch) ?? false)
+
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && cls.isActive) ||
+      (statusFilter === 'inactive' && !cls.isActive)
+
+    return matchesSearch && matchesStatus
+  })
+}
 
 export function ClassesListPage() {
   const role = useAuthStore((s) => s.user?.role)
@@ -45,7 +70,14 @@ export function ClassesListPage() {
 }
 
 function RoleClassesList({ basePath }: { basePath: string }) {
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search)
   const { classes, isLoading, error } = useClassOptions()
+
+  const filteredClasses = useMemo(
+    () => filterClasses(classes, debouncedSearch, 'active'),
+    [classes, debouncedSearch],
+  )
 
   if (isLoading) return <Skeleton className="h-64 w-full" />
   if (error) return <QueryError error={error} />
@@ -57,40 +89,28 @@ function RoleClassesList({ basePath }: { basePath: string }) {
         description="View your assigned classes."
       />
 
-      {classes.length === 0 ? (
+      <Input
+        placeholder="Search by name or code…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="max-w-sm"
+      />
+
+      {filteredClasses.length === 0 ? (
         <EmptyState
-          title="No classes yet"
-          description="You are not assigned to any classes yet."
+          title={classes.length === 0 ? 'No classes yet' : 'No classes match your search'}
+          description={
+            classes.length === 0
+              ? 'You are not assigned to any classes yet.'
+              : 'Try a different search term.'
+          }
         />
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {classes.map((cls) => (
-                <TableRow key={cls.id}>
-                  <TableCell className="font-medium">{cls.name}</TableCell>
-                  <TableCell>{cls.code ?? '—'}</TableCell>
-                  <TableCell>
-                    <ActiveBadge active={cls.isActive} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild variant="ghost" size="sm">
-                      <Link to={`${basePath}/classes/${cls.id}`}>View</Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ClassesDataGrid
+          classes={filteredClasses}
+          loading={isLoading}
+          basePath={basePath}
+        />
       )}
     </div>
   )
@@ -101,11 +121,14 @@ function AdminClassesList({ basePath }: { basePath: string }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   const query = useQuery({
     queryKey: queryKeys.classes.list({ scope: 'admin' }),
     queryFn: async () => {
-      const result = await classesApi.list({ isActive: true, limit: 100 })
+      const result = await classesApi.list({ limit: 100 })
       return result.data
     },
   })
@@ -123,6 +146,13 @@ function AdminClassesList({ basePath }: { basePath: string }) {
       toast.error(isApiError(error) ? error.message : 'Unable to create class.')
     },
   })
+
+  const filteredClasses = useMemo(
+    () => filterClasses(query.data ?? [], debouncedSearch, statusFilter),
+    [query.data, debouncedSearch, statusFilter],
+  )
+
+  const isLoading = query.isLoading || query.isFetching
 
   return (
     <div className="space-y-6">
@@ -163,42 +193,70 @@ function AdminClassesList({ basePath }: { basePath: string }) {
         }
       />
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Input
+          placeholder="Search by name or code…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between sm:w-44">
+              <span>
+                {statusFilter === 'all'
+                  ? 'All statuses'
+                  : statusFilter === 'active'
+                    ? 'Active only'
+                    : 'Inactive only'}
+              </span>
+              <ChevronDown className="size-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-44">
+            <DropdownMenuLabel>Status</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={statusFilter === 'all'}
+              onCheckedChange={() => setStatusFilter('all')}
+              onSelect={(event) => event.preventDefault()}
+            >
+              All
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={statusFilter === 'active'}
+              onCheckedChange={() => setStatusFilter('active')}
+              onSelect={(event) => event.preventDefault()}
+            >
+              Active
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={statusFilter === 'inactive'}
+              onCheckedChange={() => setStatusFilter('inactive')}
+              onSelect={(event) => event.preventDefault()}
+            >
+              Inactive
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       {query.isLoading ? <Skeleton className="h-64 w-full" /> : null}
       {query.error ? <QueryError error={query.error} onRetry={() => query.refetch()} /> : null}
 
-      {query.data?.length === 0 ? (
-        <EmptyState title="No classes yet" description="Create your first class to get started." />
+      {filteredClasses.length === 0 && !isLoading ? (
+        <EmptyState
+          title={query.data?.length === 0 ? 'No classes yet' : 'No classes match your filters'}
+          description={
+            query.data?.length === 0
+              ? 'Create your first class to get started.'
+              : 'Try adjusting your search or status filter.'
+          }
+        />
       ) : null}
 
-      {query.data && query.data.length > 0 ? (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {query.data.map((cls) => (
-                <TableRow key={cls.id}>
-                  <TableCell className="font-medium">{cls.name}</TableCell>
-                  <TableCell>{cls.code ?? '—'}</TableCell>
-                  <TableCell>
-                    <ActiveBadge active={cls.isActive} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild variant="ghost" size="sm">
-                      <Link to={`${basePath}/classes/${cls.id}`}>Manage</Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      {filteredClasses.length > 0 ? (
+        <ClassesDataGrid classes={filteredClasses} loading={isLoading} basePath={basePath} />
       ) : null}
     </div>
   )

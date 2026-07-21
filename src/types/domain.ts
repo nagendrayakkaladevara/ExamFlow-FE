@@ -20,6 +20,17 @@ export interface ClassRecord {
   updatedAt: string
 }
 
+export interface ClassMember {
+  id: string
+  userId: string
+  firstName: string
+  lastName: string
+  email: string
+  isActive: boolean
+  assignedAt?: string
+  enrolledAt?: string
+}
+
 export interface TagRecord {
   id: string
   name: string

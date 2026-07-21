@@ -10,6 +10,9 @@ export const queryKeys = {
   classes: {
     all: ['classes'] as const,
     list: (params?: Record<string, unknown>) => ['classes', 'list', params] as const,
+    detail: (id: string) => ['classes', 'detail', id] as const,
+    lecturers: (id: string) => ['classes', id, 'lecturers'] as const,
+    students: (id: string) => ['classes', id, 'students'] as const,
   },
   tags: {
     all: ['tags'] as const,
