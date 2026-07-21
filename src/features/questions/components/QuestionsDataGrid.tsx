@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { DifficultyBadge } from '@/features/questions/components/DifficultyBadge'
 import { formatDate } from '@/lib/format'
 import type { QuestionRecord } from '@/types/domain'
 
@@ -33,6 +34,16 @@ function QuestionTitleCell({ data }: ICellRendererParams<QuestionRecord>) {
       <span className="truncate text-sm font-medium" title={data.title}>
         {data.title}
       </span>
+    </div>
+  )
+}
+
+function DifficultyCell({ data }: ICellRendererParams<QuestionRecord>) {
+  if (!data?.difficulty) return null
+
+  return (
+    <div className="flex h-full items-center py-1">
+      <DifficultyBadge difficulty={data.difficulty} />
     </div>
   )
 }
@@ -109,7 +120,8 @@ export function QuestionsDataGrid({ questions, loading, onView }: QuestionsDataG
         headerName: 'Difficulty',
         field: 'difficulty',
         width: 120,
-        valueFormatter: (params) => formatLabel(params.value ?? ''),
+        sortable: false,
+        cellRenderer: DifficultyCell,
       },
       {
         headerName: 'Marks',
