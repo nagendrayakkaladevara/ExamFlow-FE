@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { DifficultyBadge } from '@/features/questions/components/DifficultyBadge'
 import { questionsApi } from '@/features/questions/api'
 import { queryKeys } from '@/config/query-keys'
 import { formatDate } from '@/lib/format'
@@ -74,7 +75,7 @@ export function QuestionViewDialog({
           {question ? (
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{formatLabel(question.type)}</Badge>
-              <Badge variant="outline">{formatLabel(question.difficulty)}</Badge>
+              <DifficultyBadge difficulty={question.difficulty} />
               <Badge variant="outline">{question.defaultMarks} marks</Badge>
               {question.subject ? (
                 <span className="text-xs text-muted-foreground">{question.subject}</span>
@@ -106,7 +107,7 @@ export function QuestionViewDialog({
 
             {question ? (
               <>
-                <DetailSection title="Question">
+                <DetailSection title="Question Description">
                   <div className="rounded-lg border bg-muted/20 p-4 sm:p-5">
                     <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
                       {question.description}
@@ -123,7 +124,7 @@ export function QuestionViewDialog({
 
                 {question.type === 'FILL_BLANK' ? (
                   <DetailSection title="Correct answer">
-                    <div className="rounded-lg border bg-emerald-50/60 px-4 py-3 text-base leading-relaxed">
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-base leading-relaxed dark:border-emerald-900/50 dark:bg-emerald-950/60">
                       {question.correctText}
                     </div>
                   </DetailSection>
@@ -136,7 +137,7 @@ export function QuestionViewDialog({
                           className={cn(
                             'flex items-start gap-3 rounded-lg border px-4 py-3 text-base leading-relaxed',
                             option.isCorrect
-                              ? 'border-emerald-200 bg-emerald-50/60'
+                              ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-950/60'
                               : 'bg-background',
                           )}
                         >
@@ -144,7 +145,7 @@ export function QuestionViewDialog({
                             className={cn(
                               'flex size-7 shrink-0 items-center justify-center rounded-md border text-sm font-medium',
                               option.isCorrect
-                                ? 'border-emerald-300 bg-emerald-100 text-emerald-900'
+                                ? 'border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                 : 'bg-muted/40 text-muted-foreground',
                             )}
                           >
@@ -152,7 +153,7 @@ export function QuestionViewDialog({
                           </span>
                           <span className="min-w-0 flex-1 pt-0.5">{option.optionText}</span>
                           {option.isCorrect ? (
-                            <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-700">
+                            <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                               <CheckCircle2 className="size-3.5" aria-hidden />
                               Correct
                             </span>
