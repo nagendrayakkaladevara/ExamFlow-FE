@@ -46,7 +46,6 @@ export function AssignmentCreatePage() {
   const navigate = useNavigate()
   const { classes } = useClassOptions()
   const [step, setStep] = useState(1)
-  const [assignmentId, setAssignmentId] = useState<string | null>(null)
 
   const [classId, setClassId] = useState('')
   const [title, setTitle] = useState('')
@@ -84,6 +83,15 @@ export function AssignmentCreatePage() {
         : null,
     [resultPolicy, endAt, resultDeclareAt],
   )
+
+  const isStep1Valid =
+    Boolean(classId) &&
+    Boolean(title.trim()) &&
+    Boolean(endAt) &&
+    !startAtNotInPastError &&
+    !endAfterStartError &&
+    !durationFitError &&
+    !resultDeclareAtError
 
   const tagsQuery = useQuery({
     queryKey: queryKeys.tags.all,
@@ -131,9 +139,9 @@ export function AssignmentCreatePage() {
     setViewQuestionId(questionId)
   }, [])
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      assignmentsApi.create({
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      const assignment = await assignmentsApi.create({
         classId,
         title,
         description: description || null,
@@ -146,31 +154,23 @@ export function AssignmentCreatePage() {
             ? fromDatetimeLocalValue(resultDeclareAt)
             : null,
         isPublished: true,
-      }),
-    onSuccess: (assignment) => {
-      setAssignmentId(assignment.id)
-      setStep(2)
-      toast.success('Assignment created. Now add questions.')
-    },
-    onError: (error) => {
-      toast.error(isApiError(error) ? error.message : 'Unable to create assignment.')
-    },
-  })
+      })
 
-  const importMutation = useMutation({
-    mutationFn: () =>
-      assignmentsApi.importQuestions(assignmentId!, {
+      await assignmentsApi.importQuestions(assignment.id, {
         questions: selectedQuestions.map((questionId, index) => ({
           questionId,
           sortOrder: index,
         })),
-      }),
-    onSuccess: () => {
-      toast.success('Questions imported.')
-      navigate(`/lecturer/assignments/${assignmentId}`)
+      })
+
+      return assignment
+    },
+    onSuccess: (assignment) => {
+      toast.success('Assignment published.')
+      navigate(`/lecturer/assignments/${assignment.id}`)
     },
     onError: (error) => {
-      toast.error(isApiError(error) ? error.message : 'Unable to import questions.')
+      toast.error(isApiError(error) ? error.message : 'Unable to publish assignment.')
     },
   })
 
@@ -180,9 +180,24 @@ export function AssignmentCreatePage() {
         title="Create assignment"
         description={step === 1 ? 'Step 1 of 2 — Assignment details' : 'Step 2 of 2 — Import questions'}
         actions={
-          <Button variant="outline" asChild>
-            <Link to="/lecturer/assignments">Cancel</Link>
-          </Button>
+          <>
+            {step === 2 ? (
+              <Button
+                type="button"
+                disabled={
+                  !isStep1Valid ||
+                  selectedQuestions.length === 0 ||
+                  publishMutation.isPending
+                }
+                onClick={() => publishMutation.mutate()}
+              >
+                Finish and publish
+              </Button>
+            ) : null}
+            <Button variant="outline" asChild>
+              <Link to="/lecturer/assignments">Cancel</Link>
+            </Button>
+          </>
         }
       />
 
@@ -294,17 +309,8 @@ export function AssignmentCreatePage() {
             ) : null}
             <Button
               type="button"
-              disabled={
-                !classId ||
-                !title.trim() ||
-                !endAt ||
-                Boolean(startAtNotInPastError) ||
-                Boolean(endAfterStartError) ||
-                Boolean(durationFitError) ||
-                Boolean(resultDeclareAtError) ||
-                createMutation.isPending
-              }
-              onClick={() => createMutation.mutate()}
+              disabled={!isStep1Valid}
+              onClick={() => setStep(2)}
             >
               Continue to questions
             </Button>
@@ -362,20 +368,11 @@ export function AssignmentCreatePage() {
             }}
           />
 
-          <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              {selectedQuestions.length === 0
-                ? 'No questions selected'
-                : `${selectedQuestions.length} question${selectedQuestions.length === 1 ? '' : 's'} selected`}
-            </p>
-            <Button
-              type="button"
-              disabled={selectedQuestions.length === 0 || importMutation.isPending}
-              onClick={() => importMutation.mutate()}
-            >
-              Finish and publish
-            </Button>
-          </div>
+          <p className="border-t pt-4 text-sm text-muted-foreground">
+            {selectedQuestions.length === 0
+              ? 'No questions selected'
+              : `${selectedQuestions.length} question${selectedQuestions.length === 1 ? '' : 's'} selected`}
+          </p>
         </div>
       )}
     </div>
