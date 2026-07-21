@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import type { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColDef, GridApi, GridReadyEvent, ICellRendererParams } from 'ag-grid-community'
 import { MoreHorizontal } from 'lucide-react'
 import { AppDataGrid } from '@/components/data-grid/AppDataGrid'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,9 @@ interface QuestionsDataGridProps {
   questions: QuestionRecord[]
   loading?: boolean
   onView: (questionId: string) => void
+  selectable?: boolean
+  selectedIds?: string[]
+  onSelectionChange?: (ids: string[]) => void
 }
 
 function formatLabel(value: string): string {
@@ -99,7 +102,54 @@ function ActionsCell({
   )
 }
 
-export function QuestionsDataGrid({ questions, loading, onView }: QuestionsDataGridProps) {
+export function QuestionsDataGrid({
+  questions,
+  loading,
+  onView,
+  selectable = false,
+  selectedIds = [],
+  onSelectionChange,
+}: QuestionsDataGridProps) {
+  const gridApiRef = useRef<GridApi<QuestionRecord> | null>(null)
+  const isSyncingRef = useRef(false)
+  const selectedIdsRef = useRef(selectedIds)
+
+  selectedIdsRef.current = selectedIds
+
+  const syncSelection = useCallback((api: GridApi<QuestionRecord>) => {
+    isSyncingRef.current = true
+    const selectedSet = new Set(selectedIdsRef.current)
+    api.forEachNode((node) => {
+      if (!node.data) return
+      node.setSelected(selectedSet.has(node.data.id))
+    })
+    isSyncingRef.current = false
+  }, [])
+
+  const handleGridReady = useCallback(
+    (event: GridReadyEvent<QuestionRecord>) => {
+      gridApiRef.current = event.api
+      if (selectable) {
+        syncSelection(event.api)
+      }
+    },
+    [selectable, syncSelection],
+  )
+
+  const handleSelectionChanged = useCallback(() => {
+    if (!selectable || !onSelectionChange || !gridApiRef.current || isSyncingRef.current) {
+      return
+    }
+
+    const visibleSelectedIds = gridApiRef.current
+      .getSelectedRows()
+      .map((row) => row.id)
+    const visibleIds = new Set(questions.map((question) => question.id))
+    const hiddenSelectedIds = selectedIdsRef.current.filter((id) => !visibleIds.has(id))
+
+    onSelectionChange([...hiddenSelectedIds, ...visibleSelectedIds])
+  }, [onSelectionChange, questions, selectable])
+
   const columnDefs = useMemo<ColDef<QuestionRecord>[]>(
     () => [
       {
@@ -165,6 +215,25 @@ export function QuestionsDataGrid({ questions, loading, onView }: QuestionsDataG
       loading={loading}
       getRowId={({ data }) => data.id}
       height="min(70vh, 640px)"
+      onGridReady={handleGridReady}
+      gridOptions={
+        selectable
+          ? {
+              rowSelection: {
+                mode: 'multiRow',
+                checkboxes: true,
+                headerCheckbox: true,
+                enableClickSelection: true,
+              },
+              onSelectionChanged: handleSelectionChanged,
+              onRowDataUpdated: (event) => {
+                if (selectable) {
+                  syncSelection(event.api)
+                }
+              },
+            }
+          : undefined
+      }
     />
   )
 }
