@@ -103,24 +103,33 @@ export function PollFormPage() {
     name: 'options',
   })
 
-  const buildPayload = (values: PollFormValues) => ({
-    title: values.title,
-    description: values.description || null,
-    publishAt: fromDatetimeLocalValue(values.publishAt),
-    expireAt: fromDatetimeLocalValue(values.expireAt),
-    resultVisibility: values.resultVisibility,
-    ...(isEdit ? {} : { audiences: values.audiences }),
-    options: values.options
+  const buildOptions = (values: PollFormValues) =>
+    values.options
       .filter((option) => option.optionText.trim())
-      .map((option, sortOrder) => ({ optionText: option.optionText.trim(), sortOrder })),
-  })
+      .map((option, sortOrder) => ({ optionText: option.optionText.trim(), sortOrder }))
 
   const mutation = useMutation({
     mutationFn: (values: PollFormValues) => {
-      const payload = buildPayload(values)
-      return isEdit && editId
-        ? pollsApi.update(editId, payload)
-        : pollsApi.create(payload)
+      if (isEdit && editId) {
+        return pollsApi.update(editId, {
+          title: values.title,
+          description: values.description || null,
+          publishAt: fromDatetimeLocalValue(values.publishAt),
+          expireAt: fromDatetimeLocalValue(values.expireAt),
+          resultVisibility: values.resultVisibility,
+          options: buildOptions(values),
+        })
+      }
+
+      return pollsApi.create({
+        title: values.title,
+        description: values.description || null,
+        publishAt: fromDatetimeLocalValue(values.publishAt),
+        expireAt: fromDatetimeLocalValue(values.expireAt),
+        resultVisibility: values.resultVisibility,
+        audiences: values.audiences,
+        options: buildOptions(values),
+      })
     },
     onSuccess: (poll) => {
       toast.success(isEdit ? 'Poll updated.' : 'Poll created.')
