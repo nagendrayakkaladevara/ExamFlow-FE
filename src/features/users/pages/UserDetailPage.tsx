@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { ConfirmDialog } from '@/components/feedback/ConfirmDialog'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,17 +13,45 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { usersApi } from '@/features/users/api'
 import { queryKeys } from '@/config/query-keys'
 import { ActiveBadge, RoleBadge } from '@/components/shared/StatusBadge'
+import { formatDateTime } from '@/lib/format'
 import { isApiError } from '@/lib/errors'
 
 export function UserDetailPage() {
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
   const [newPassword, setNewPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [deactivateOpen, setDeactivateOpen] = useState(false)
 
   const query = useQuery({
     queryKey: [...queryKeys.users.all, id],
     queryFn: () => usersApi.get(id),
     enabled: Boolean(id),
+  })
+
+  useEffect(() => {
+    if (!query.data) return
+    setFirstName(query.data.firstName)
+    setLastName(query.data.lastName)
+    setEmail(query.data.email)
+  }, [query.data])
+
+  const saveProfile = useMutation({
+    mutationFn: () =>
+      usersApi.update(id, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all })
+      toast.success('Profile updated.')
+    },
+    onError: (error) => {
+      toast.error(isApiError(error) ? error.message : 'Unable to update user.')
+    },
   })
 
   const toggleActive = useMutation({
@@ -31,6 +60,7 @@ export function UserDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all })
       toast.success('User updated.')
+      setDeactivateOpen(false)
     },
     onError: (error) => {
       toast.error(isApiError(error) ? error.message : 'Unable to update user.')
@@ -48,22 +78,23 @@ export function UserDetailPage() {
     },
   })
 
-  const removeUser = useMutation({
-    mutationFn: () => usersApi.remove(id),
-    onSuccess: () => {
-      toast.success('User deactivated.')
-      queryClient.invalidateQueries({ queryKey: queryKeys.users.all })
-    },
-    onError: (error) => {
-      toast.error(isApiError(error) ? error.message : 'Unable to deactivate user.')
-    },
-  })
-
   if (query.isLoading) return <Skeleton className="h-64 w-full" />
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
   if (!query.data) return null
 
   const user = query.data
+  const profileDirty =
+    firstName.trim() !== user.firstName ||
+    lastName.trim() !== user.lastName ||
+    email.trim() !== user.email
+
+  function handleAccountToggle() {
+    if (user.isActive) {
+      setDeactivateOpen(true)
+      return
+    }
+    toggleActive.mutate()
+  }
 
   return (
     <div className="space-y-6">
@@ -80,6 +111,46 @@ export function UserDetailPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
+            <CardTitle>Profile</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="first-name">First name</Label>
+              <Input
+                id="first-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="last-name">Last name</Label>
+              <Input
+                id="last-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              disabled={!profileDirty || saveProfile.isPending}
+              onClick={() => saveProfile.mutate()}
+            >
+              Save profile
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Account</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
@@ -90,12 +161,16 @@ export function UserDetailPage() {
             <p>
               <span className="text-muted-foreground">User ID:</span> {user.id}
             </p>
+            <p>
+              <span className="text-muted-foreground">Last active:</span>{' '}
+              {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
+            </p>
             <Button
               type="button"
-              variant="outline"
+              variant={user.isActive ? 'outline' : 'default'}
               size="sm"
               disabled={toggleActive.isPending || user.role === 'ADMIN'}
-              onClick={() => toggleActive.mutate()}
+              onClick={handleAccountToggle}
             >
               {user.isActive ? 'Deactivate account' : 'Activate account'}
             </Button>
@@ -130,16 +205,15 @@ export function UserDetailPage() {
         ) : null}
       </div>
 
-      {user.role !== 'ADMIN' && user.isActive ? (
-        <Button
-          type="button"
-          variant="destructive"
-          disabled={removeUser.isPending}
-          onClick={() => removeUser.mutate()}
-        >
-          Deactivate user
-        </Button>
-      ) : null}
+      <ConfirmDialog
+        open={deactivateOpen}
+        onOpenChange={setDeactivateOpen}
+        title="Deactivate account?"
+        description={`${user.firstName} ${user.lastName} will no longer be able to sign in.`}
+        confirmLabel="Deactivate account"
+        onConfirm={() => toggleActive.mutate()}
+        pending={toggleActive.isPending}
+      />
     </div>
   )
 }

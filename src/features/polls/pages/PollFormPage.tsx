@@ -1,10 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { QueryError } from '@/components/feedback/EmptyState'
 import { AudiencePicker } from '@/components/shared/AudiencePicker'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -43,9 +44,11 @@ import {
 import { useAuthStore } from '@/features/auth/store'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import { isApiError } from '@/lib/errors'
+import { queryKeys } from '@/config/query-keys'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useRoleBasePath } from '@/hooks/useRolePath'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const formFooterClassName =
   'flex w-full min-w-0 flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:px-6'
@@ -62,10 +65,18 @@ const defaultValues: PollFormValues = {
 }
 
 export function PollFormPage() {
+  const { id: editId } = useParams()
+  const isEdit = Boolean(editId)
   const role = useAuthStore((s) => s.user!.role)
   const basePath = useRoleBasePath()
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const pollQuery = useQuery({
+    queryKey: [...queryKeys.polls.all, editId],
+    queryFn: () => pollsApi.get(editId!),
+    enabled: isEdit && Boolean(editId),
+  })
 
   const form = useForm<PollFormValues>({
     resolver: zodResolver(pollFormSchema),
@@ -73,43 +84,70 @@ export function PollFormPage() {
     mode: 'onBlur',
   })
 
+  useEffect(() => {
+    if (!pollQuery.data) return
+    const poll = pollQuery.data
+    form.reset({
+      title: poll.title,
+      description: poll.description ?? '',
+      publishAt: toDatetimeLocalValue(poll.publishAt),
+      expireAt: toDatetimeLocalValue(poll.expireAt),
+      resultVisibility: poll.resultVisibility,
+      audiences: [],
+      options: poll.options.map((option) => ({ optionText: option.optionText })),
+    })
+  }, [pollQuery.data, form])
+
   const { fields, append } = useFieldArray({
     control: form.control,
     name: 'options',
   })
 
+  const buildPayload = (values: PollFormValues) => ({
+    title: values.title,
+    description: values.description || null,
+    publishAt: fromDatetimeLocalValue(values.publishAt),
+    expireAt: fromDatetimeLocalValue(values.expireAt),
+    resultVisibility: values.resultVisibility,
+    ...(isEdit ? {} : { audiences: values.audiences }),
+    options: values.options
+      .filter((option) => option.optionText.trim())
+      .map((option, sortOrder) => ({ optionText: option.optionText.trim(), sortOrder })),
+  })
+
   const mutation = useMutation({
-    mutationFn: (values: PollFormValues) =>
-      pollsApi.create({
-        title: values.title,
-        description: values.description || null,
-        publishAt: fromDatetimeLocalValue(values.publishAt),
-        expireAt: fromDatetimeLocalValue(values.expireAt),
-        resultVisibility: values.resultVisibility,
-        audiences: values.audiences,
-        options: values.options
-          .filter((option) => option.optionText.trim())
-          .map((option, sortOrder) => ({ optionText: option.optionText.trim(), sortOrder })),
-      }),
+    mutationFn: (values: PollFormValues) => {
+      const payload = buildPayload(values)
+      return isEdit && editId
+        ? pollsApi.update(editId, payload)
+        : pollsApi.create(payload)
+    },
     onSuccess: (poll) => {
-      toast.success('Poll created.')
+      toast.success(isEdit ? 'Poll updated.' : 'Poll created.')
       navigate(`${basePath}/polls/${poll.id}`)
     },
     onError: (error) => {
-      const message = isApiError(error) ? error.message : 'Unable to create poll.'
+      const message = isApiError(error) ? error.message : 'Unable to save poll.'
       setSubmitError(message)
       toast.error(message)
     },
   })
 
+  if (isEdit && pollQuery.isLoading) return <Skeleton className="h-64 w-full" />
+  if (isEdit && pollQuery.error) {
+    return <QueryError error={pollQuery.error} onRetry={() => pollQuery.refetch()} />
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
-        title="New poll"
+        title={isEdit ? 'Edit poll' : 'New poll'}
         description="Ask a question and collect one vote per student."
         actions={
           <Button variant="outline" asChild>
-            <Link to={`${basePath}/polls`}>Cancel</Link>
+            <Link to={isEdit ? `${basePath}/polls/${editId}` : `${basePath}/polls`}>
+              Cancel
+            </Link>
           </Button>
         }
       />
@@ -291,6 +329,8 @@ export function PollFormPage() {
 
                 <FieldSeparator />
 
+                {!isEdit ? (
+                  <>
                 <FieldSet className="gap-4">
                   <div className="space-y-1">
                     <FieldLegend variant="legend">Audience</FieldLegend>
@@ -318,6 +358,8 @@ export function PollFormPage() {
                   />
                   </div>
                 </FieldSet>
+                  </>
+                ) : null}
               </FieldGroup>
             </CardContent>
 
@@ -330,10 +372,10 @@ export function PollFormPage() {
                 {mutation.isPending ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    Creating…
+                    {isEdit ? 'Saving…' : 'Creating…'}
                   </>
                 ) : (
-                  'Create poll'
+                  isEdit ? 'Save changes' : 'Create poll'
                 )}
               </Button>
             </CardFooter>

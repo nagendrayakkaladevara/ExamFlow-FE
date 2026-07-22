@@ -1,13 +1,16 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { circularsApi } from '@/features/circulars/api'
+import { useAuthStore } from '@/features/auth/store'
 import { queryKeys } from '@/config/query-keys'
 import { ACTIVE_PAGE_POLL_INTERVAL_MS } from '@/config/query-polling'
 import { formatDateTime } from '@/lib/format'
+import { useRoleBasePath } from '@/hooks/useRolePath'
 import {
   fadeIn,
   fadeInUp,
@@ -38,7 +41,10 @@ function CircularDetailSkeleton() {
 
 export function CircularDetailPage() {
   const { id = '' } = useParams()
+  const role = useAuthStore((s) => s.user?.role)
+  const basePath = useRoleBasePath()
   const reducedMotion = useReducedMotion()
+  const canEdit = role === 'ADMIN' || role === 'LECTURER'
 
   const query = useQuery({
     queryKey: [...queryKeys.circulars.all, id],
@@ -67,7 +73,12 @@ export function CircularDetailPage() {
         variants={fadeIn}
         transition={panelTransition}
       >
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {canEdit ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`${basePath}/circulars/${id}/edit`}>Edit</Link>
+            </Button>
+          ) : null}
           <RefreshButton onClick={() => query.refetch()} isRefreshing={query.isFetching} />
         </div>
 

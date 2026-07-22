@@ -41,6 +41,12 @@ export const classesApi = {
   enrollStudent: (classId: string, userId: string) =>
     api.post<{ enrolled: boolean }>(`/classes/${classId}/students`, { userId }),
 
+  unassignLecturer: (classId: string, userId: string) =>
+    api.delete<{ unassigned: boolean }>(`/classes/${classId}/lecturers/${userId}`),
+
+  unassignStudent: (classId: string, userId: string) =>
+    api.delete<{ unassigned: boolean }>(`/classes/${classId}/students/${userId}`),
+
   listAssigned: () => api.get<ClassRecord[]>('/classes/assigned'),
 
   listEnrolled: () => api.get<ClassRecord[]>('/classes/enrolled'),

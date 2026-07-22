@@ -1,5 +1,6 @@
-import type { AssignmentQuestion } from '@/types/domain'
+import type { AssignmentQuestion, AssignmentRecord } from '@/types/domain'
 import type { LecturerAssignmentAnalytics } from '@/types/domain'
+import type { SubmissionStatus } from '@/types/enums'
 
 export function getAssignmentWindowMinutes(
   startAt: string,
@@ -97,6 +98,26 @@ export function getTotalMarks(questions: AssignmentQuestion[]): number {
 export function formatQuestionType(type: string): string {
   const formatted = type.replaceAll('_', ' ').toLowerCase()
   return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+}
+
+export function isSubmissionCompleted(status: SubmissionStatus | string): boolean {
+  const normalized = status.toUpperCase()
+  return normalized === 'SUBMITTED' || normalized === 'AUTO_SUBMITTED'
+}
+
+export function canViewResults(assignment: AssignmentRecord, now = Date.now()): boolean {
+  switch (assignment.resultPolicy) {
+    case 'IMMEDIATE':
+      return true
+    case 'AFTER_COMPLETION':
+      return now >= new Date(assignment.endAt).getTime()
+    case 'SCHEDULED':
+      return assignment.resultDeclareAt
+        ? now >= new Date(assignment.resultDeclareAt).getTime()
+        : false
+    default:
+      return false
+  }
 }
 
 export interface StudentRankingRow {

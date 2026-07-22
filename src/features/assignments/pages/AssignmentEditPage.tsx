@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { ConfirmDialog } from '@/components/feedback/ConfirmDialog'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -42,15 +43,59 @@ const resultPolicyOptions: { value: ResultPolicy; label: string }[] = [
   { value: 'SCHEDULED', label: 'Scheduled date' },
 ]
 
-export function AssignmentCreatePage() {
+function SelectedQuestionsMarks({
+  selectedQuestions,
+  questions,
+  questionMarks,
+  onMarksChange,
+}: {
+  selectedQuestions: string[]
+  questions: { id: string; title: string; defaultMarks: number }[]
+  questionMarks: Record<string, number>
+  onMarksChange: (questionId: string, marks: number) => void
+}) {
+  if (selectedQuestions.length === 0) return null
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-6">
+        <p className="text-sm font-medium">Marks per question</p>
+        <div className="space-y-2">
+          {selectedQuestions.map((questionId, index) => {
+            const question = questions.find((q) => q.id === questionId)
+            return (
+              <div key={questionId} className="flex items-center gap-3 text-sm">
+                <span className="min-w-0 flex-1 truncate">
+                  {index + 1}. {question?.title ?? questionId}
+                </span>
+                <Input
+                  type="number"
+                  min={0.1}
+                  step={0.5}
+                  className="w-24"
+                  value={questionMarks[questionId] ?? question?.defaultMarks ?? 1}
+                  onChange={(e) => onMarksChange(questionId, Number(e.target.value))}
+                />
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function AssignmentEditPage() {
+  const { id = '' } = useParams()
   const navigate = useNavigate()
   const { classes } = useClassOptions()
   const [step, setStep] = useState(1)
+  const [initialized, setInitialized] = useState(false)
 
   const [classId, setClassId] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [startAt, setStartAt] = useState(toDatetimeLocalValue(new Date().toISOString()))
+  const [startAt, setStartAt] = useState('')
   const [endAt, setEndAt] = useState('')
   const [durationMinutes, setDurationMinutes] = useState(60)
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
@@ -61,10 +106,42 @@ export function AssignmentCreatePage() {
   const debouncedSearch = useDebounce(search)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [viewQuestionId, setViewQuestionId] = useState<string | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+
+  const assignmentQuery = useQuery({
+    queryKey: [...queryKeys.assignments.all, id],
+    queryFn: () => assignmentsApi.get(id),
+    enabled: Boolean(id),
+  })
+
+  useEffect(() => {
+    if (!assignmentQuery.data || initialized) return
+    const assignment = assignmentQuery.data
+    setClassId(assignment.classId)
+    setTitle(assignment.title)
+    setDescription(assignment.description ?? '')
+    setStartAt(toDatetimeLocalValue(assignment.startAt))
+    setEndAt(toDatetimeLocalValue(assignment.endAt))
+    setDurationMinutes(assignment.durationMinutes)
+    setResultPolicy(assignment.resultPolicy)
+    setResultDeclareAt(
+      assignment.resultDeclareAt ? toDatetimeLocalValue(assignment.resultDeclareAt) : '',
+    )
+    const sorted = [...assignment.questions].sort((a, b) => a.sortOrder - b.sortOrder)
+    setSelectedQuestions(sorted.map((q) => q.questionId))
+    setQuestionMarks(
+      Object.fromEntries(sorted.map((q) => [q.questionId, q.marks])),
+    )
+    setInitialized(true)
+  }, [assignmentQuery.data, initialized])
+
+  const assignmentStarted =
+    assignmentQuery.data != null &&
+    Date.now() >= new Date(assignmentQuery.data.startAt).getTime()
 
   const startAtNotInPastError = useMemo(
-    () => getStartAtNotInPastError(startAt),
-    [startAt],
+    () => (assignmentStarted ? null : getStartAtNotInPastError(startAt)),
+    [startAt, assignmentStarted],
   )
 
   const endAfterStartError = useMemo(
@@ -104,7 +181,7 @@ export function AssignmentCreatePage() {
 
   const questionsQuery = useQuery({
     queryKey: queryKeys.questions.list({
-      scope: 'import',
+      scope: 'import-edit',
       search: debouncedSearch,
       tags: selectedTags,
     }),
@@ -125,6 +202,18 @@ export function AssignmentCreatePage() {
   const isLoadingQuestions = questionsQuery.isLoading || questionsQuery.isFetching
   const allQuestions = questionsQuery.data ?? []
 
+  function toggleTag(tagId: string) {
+    setSelectedTags((current) =>
+      current.includes(tagId)
+        ? current.filter((tag) => tag !== tagId)
+        : [...current, tagId],
+    )
+  }
+
+  function removeTag(tagId: string) {
+    setSelectedTags((current) => current.filter((tag) => tag !== tagId))
+  }
+
   function handleMarksChange(questionId: string, marks: number) {
     setQuestionMarks((current) => ({ ...current, [questionId]: marks }))
   }
@@ -143,25 +232,13 @@ export function AssignmentCreatePage() {
     })
   }
 
-  function toggleTag(tagId: string) {
-    setSelectedTags((current) =>
-      current.includes(tagId)
-        ? current.filter((id) => id !== tagId)
-        : [...current, tagId],
-    )
-  }
-
-  function removeTag(tagId: string) {
-    setSelectedTags((current) => current.filter((id) => id !== tagId))
-  }
-
   const handleViewQuestion = useCallback((questionId: string) => {
     setViewQuestionId(questionId)
   }, [])
 
-  const publishMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async () => {
-      const assignment = await assignmentsApi.create({
+      await assignmentsApi.update(id, {
         classId,
         title,
         description: description || null,
@@ -173,53 +250,85 @@ export function AssignmentCreatePage() {
           resultPolicy === 'SCHEDULED' && resultDeclareAt
             ? fromDatetimeLocalValue(resultDeclareAt)
             : null,
-        isPublished: true,
       })
 
-      await assignmentsApi.importQuestions(assignment.id, {
+      await assignmentsApi.importQuestions(id, {
         questions: selectedQuestions.map((questionId, index) => ({
           questionId,
           sortOrder: index,
           marks: questionMarks[questionId],
         })),
       })
-
-      return assignment
     },
-    onSuccess: (assignment) => {
-      toast.success('Assignment published.')
-      navigate(`/lecturer/assignments/${assignment.id}`)
+    onSuccess: () => {
+      toast.success('Assignment updated.')
+      navigate(`/lecturer/assignments/${id}`)
     },
     onError: (error) => {
-      toast.error(isApiError(error) ? error.message : 'Unable to publish assignment.')
+      toast.error(isApiError(error) ? error.message : 'Unable to update assignment.')
     },
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => assignmentsApi.remove(id),
+    onSuccess: () => {
+      toast.success('Assignment deleted.')
+      navigate('/lecturer/assignments')
+    },
+    onError: (error) => {
+      toast.error(isApiError(error) ? error.message : 'Unable to delete assignment.')
+    },
+    onSettled: () => setDeleteOpen(false),
+  })
+
+  if (assignmentQuery.isLoading || !initialized) return <Skeleton className="h-64 w-full" />
+  if (assignmentQuery.error) {
+    return <QueryError error={assignmentQuery.error} onRetry={() => assignmentQuery.refetch()} />
+  }
 
   return (
     <div className={step === 1 ? 'mx-auto max-w-3xl space-y-6' : 'space-y-6'}>
       <PageHeader
-        title="Create assignment"
-        description={step === 1 ? 'Step 1 of 2 — Assignment details' : 'Step 2 of 2 — Import questions'}
+        title="Edit assignment"
+        description={step === 1 ? 'Step 1 of 2 — Assignment details' : 'Step 2 of 2 — Update questions'}
         actions={
-          <>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to={`/lecturer/assignments/${id}`}>Cancel</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => setDeleteOpen(true)}
+            >
+              Delete
+            </Button>
             {step === 2 ? (
               <Button
                 type="button"
                 disabled={
                   !isStep1Valid ||
                   selectedQuestions.length === 0 ||
-                  publishMutation.isPending
+                  saveMutation.isPending
                 }
-                onClick={() => publishMutation.mutate()}
+                onClick={() => saveMutation.mutate()}
               >
-                Finish and publish
+                Save changes
               </Button>
             ) : null}
-            <Button variant="outline" asChild>
-              <Link to="/lecturer/assignments">Cancel</Link>
-            </Button>
-          </>
+          </div>
         }
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete assignment?"
+        description="This cannot be undone. Students will no longer see this assignment."
+        confirmLabel="Delete assignment"
+        onConfirm={() => deleteMutation.mutate()}
+        pending={deleteMutation.isPending}
       />
 
       {step === 1 ? (
@@ -258,7 +367,11 @@ export function AssignmentCreatePage() {
                   <Label>Start</Label>
                   <Input
                     type="datetime-local"
-                    min={toDatetimeLocalValue(new Date().toISOString())}
+                    min={
+                      assignmentStarted
+                        ? undefined
+                        : toDatetimeLocalValue(new Date().toISOString())
+                    }
                     aria-invalid={startAtNotInPastError || endAfterStartError ? true : undefined}
                     value={startAt}
                     onChange={(e) => setStartAt(e.target.value)}
@@ -328,21 +441,13 @@ export function AssignmentCreatePage() {
                 ) : null}
               </div>
             ) : null}
-            <Button
-              type="button"
-              disabled={!isStep1Valid}
-              onClick={() => setStep(2)}
-            >
+            <Button type="button" disabled={!isStep1Valid} onClick={() => setStep(2)}>
               Continue to questions
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Select questions from your question bank to include in this assignment.
-          </p>
-
           <QuestionBankFilterBar
             search={search}
             onSearchChange={setSearch}
@@ -361,12 +466,7 @@ export function AssignmentCreatePage() {
           {questionsQuery.data?.length === 0 && !isLoadingQuestions ? (
             <EmptyState
               title="No questions found"
-              description="Try adjusting your search or filters, or add questions in the question bank."
-              action={
-                <Button asChild variant="outline">
-                  <Link to="/lecturer/questions/new">Add question</Link>
-                </Button>
-              }
+              description="Try adjusting your search or filters."
             />
           ) : null}
 
@@ -381,33 +481,12 @@ export function AssignmentCreatePage() {
             />
           ) : null}
 
-          {selectedQuestions.length > 0 ? (
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <p className="text-sm font-medium">Marks per question</p>
-                <div className="space-y-2">
-                  {selectedQuestions.map((questionId, index) => {
-                    const question = allQuestions.find((q) => q.id === questionId)
-                    return (
-                      <div key={questionId} className="flex items-center gap-3 text-sm">
-                        <span className="min-w-0 flex-1 truncate">
-                          {index + 1}. {question?.title ?? questionId}
-                        </span>
-                        <Input
-                          type="number"
-                          min={0.1}
-                          step={0.5}
-                          className="w-24"
-                          value={questionMarks[questionId] ?? question?.defaultMarks ?? 1}
-                          onChange={(e) => handleMarksChange(questionId, Number(e.target.value))}
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+          <SelectedQuestionsMarks
+            selectedQuestions={selectedQuestions}
+            questions={allQuestions}
+            questionMarks={questionMarks}
+            onMarksChange={handleMarksChange}
+          />
 
           <QuestionViewDialog
             questionId={viewQuestionId}
@@ -416,12 +495,6 @@ export function AssignmentCreatePage() {
               if (!open) setViewQuestionId(null)
             }}
           />
-
-          <p className="border-t pt-4 text-sm text-muted-foreground">
-            {selectedQuestions.length === 0
-              ? 'No questions selected'
-              : `${selectedQuestions.length} question${selectedQuestions.length === 1 ? '' : 's'} selected`}
-          </p>
         </div>
       )}
     </div>

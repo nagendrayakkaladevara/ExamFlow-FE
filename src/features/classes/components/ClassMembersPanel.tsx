@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/feedback/ConfirmDialog'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ActiveBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -39,11 +40,15 @@ function MemberTable({
   dateField,
   emptyTitle,
   emptyDescription,
+  isAdmin,
+  onRemove,
 }: {
   members: ClassMember[]
   dateField: 'assignedAt' | 'enrolledAt'
   emptyTitle: string
   emptyDescription: string
+  isAdmin?: boolean
+  onRemove?: (userId: string) => void
 }) {
   if (members.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />
@@ -58,6 +63,7 @@ function MemberTable({
             <TableHead>Email</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>{dateField === 'assignedAt' ? 'Assigned' : 'Enrolled'}</TableHead>
+            {isAdmin ? <TableHead className="text-right">Actions</TableHead> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -73,6 +79,18 @@ function MemberTable({
               <TableCell className="text-muted-foreground">
                 {formatDate(member[dateField])}
               </TableCell>
+              {isAdmin && onRemove ? (
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemove(member.userId)}
+                  >
+                    Remove
+                  </Button>
+                </TableCell>
+              ) : null}
             </TableRow>
           ))}
         </TableBody>
@@ -198,10 +216,26 @@ function AssignStudentCard({ classId }: { classId: string }) {
 }
 
 export function ClassLecturersPanel({ classId, isAdmin }: ClassMembersPanelProps) {
+  const queryClient = useQueryClient()
+  const [removeTarget, setRemoveTarget] = useState<{ userId: string; name: string } | null>(null)
+
   const membersQuery = useQuery({
     queryKey: queryKeys.classes.lecturers(classId),
     queryFn: () => classesApi.listLecturers(classId),
     retry: false,
+  })
+
+  const unassignMutation = useMutation({
+    mutationFn: (userId: string) => classesApi.unassignLecturer(classId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes.lecturers(classId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes.all })
+      toast.success('Lecturer removed.')
+      setRemoveTarget(null)
+    },
+    onError: (error) => {
+      toast.error(isApiError(error) ? error.message : 'Unable to remove lecturer.')
+    },
   })
 
   const rosterUnavailable = membersQuery.isError
@@ -231,17 +265,55 @@ export function ClassLecturersPanel({ classId, isAdmin }: ClassMembersPanelProps
               ? 'Assign a lecturer using the form above.'
               : 'This class does not have any lecturers yet.'
           }
+          isAdmin={isAdmin}
+          onRemove={(userId) => {
+            const member = membersQuery.data?.find((row) => row.userId === userId)
+            setRemoveTarget({
+              userId,
+              name: member ? `${member.firstName} ${member.lastName}` : 'this lecturer',
+            })
+          }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={removeTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveTarget(null)
+        }}
+        title="Remove lecturer?"
+        description={`${removeTarget?.name ?? 'This lecturer'} will no longer be assigned to this class.`}
+        confirmLabel="Remove lecturer"
+        onConfirm={() => {
+          if (removeTarget) unassignMutation.mutate(removeTarget.userId)
+        }}
+        pending={unassignMutation.isPending}
+      />
     </div>
   )
 }
 
 export function ClassStudentsPanel({ classId, isAdmin }: ClassMembersPanelProps) {
+  const queryClient = useQueryClient()
+  const [removeTarget, setRemoveTarget] = useState<{ userId: string; name: string } | null>(null)
+
   const membersQuery = useQuery({
     queryKey: queryKeys.classes.students(classId),
     queryFn: () => classesApi.listStudents(classId),
     retry: false,
+  })
+
+  const unassignMutation = useMutation({
+    mutationFn: (userId: string) => classesApi.unassignStudent(classId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes.students(classId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes.all })
+      toast.success('Student removed.')
+      setRemoveTarget(null)
+    },
+    onError: (error) => {
+      toast.error(isApiError(error) ? error.message : 'Unable to remove student.')
+    },
   })
 
   const rosterUnavailable = membersQuery.isError
@@ -271,8 +343,30 @@ export function ClassStudentsPanel({ classId, isAdmin }: ClassMembersPanelProps)
               ? 'Enroll students using the form above.'
               : 'This class does not have any students yet.'
           }
+          isAdmin={isAdmin}
+          onRemove={(userId) => {
+            const member = membersQuery.data?.find((row) => row.userId === userId)
+            setRemoveTarget({
+              userId,
+              name: member ? `${member.firstName} ${member.lastName}` : 'this student',
+            })
+          }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={removeTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveTarget(null)
+        }}
+        title="Remove student?"
+        description={`${removeTarget?.name ?? 'This student'} will be unenrolled from this class.`}
+        confirmLabel="Remove student"
+        onConfirm={() => {
+          if (removeTarget) unassignMutation.mutate(removeTarget.userId)
+        }}
+        pending={unassignMutation.isPending}
+      />
     </div>
   )
 }

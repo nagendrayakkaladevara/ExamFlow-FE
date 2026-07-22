@@ -24,13 +24,16 @@ import {
 import { queryKeys } from '@/config/query-keys'
 import { ACTIVE_PAGE_POLL_INTERVAL_MS } from '@/config/query-polling'
 import { formatDateTime, formatPercent } from '@/lib/format'
+import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
 import { isApiError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 
 export function PollDetailPage() {
   const { id = '' } = useParams()
+  const role = useAuthStore((s) => s.user?.role)
   const basePath = useRoleBasePath()
+  const canEdit = role === 'ADMIN' || role === 'LECTURER'
   const queryClient = useQueryClient()
   const [selectedOptionId, setSelectedOptionId] = useState<string>('')
 
@@ -99,6 +102,11 @@ export function PollDetailPage() {
         description={poll.description ?? undefined}
         actions={
           <>
+            {canEdit ? (
+              <Button variant="outline" asChild>
+                <Link to={`${basePath}/polls/${id}/edit`}>Edit</Link>
+              </Button>
+            ) : null}
             <RefreshButton
               onClick={handleRefresh}
               isRefreshing={pollQuery.isFetching || resultsQuery.isFetching}

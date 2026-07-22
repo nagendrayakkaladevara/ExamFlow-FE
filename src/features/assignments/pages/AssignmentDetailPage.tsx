@@ -16,7 +16,8 @@ import {
   formatAssignmentTimingMeta,
   getAssignmentTimingStatus,
 } from '@/features/dashboard/utils'
-import { getTotalMarks, formatStudentLabel } from '@/features/assignments/utils'
+import { getTotalMarks, formatStudentLabel, canViewResults, isSubmissionCompleted } from '@/features/assignments/utils'
+import type { AssignmentDetail } from '@/types/domain'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
@@ -60,35 +61,7 @@ export function AssignmentDetailPage() {
   const assignment = query.data
 
   if (!isLecturer) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title={assignment.title}
-          description={assignment.description ?? undefined}
-          actions={
-            <div className="flex gap-2">
-              <Button variant="outline" asChild>
-                <Link to="/student/assignments">Back</Link>
-              </Button>
-              <Button asChild>
-                <Link to={`/student/assignments/${id}/take`}>Start assignment</Link>
-              </Button>
-            </div>
-          }
-        />
-        <Card>
-          <CardContent className="space-y-2 pt-6 text-sm">
-            <p>Opens: {formatDateTime(assignment.startAt)}</p>
-            <p>Closes: {formatDateTime(assignment.endAt)}</p>
-            <p>Duration: {assignment.durationMinutes} minutes</p>
-            <p>Questions: {assignment.questions.length}</p>
-          </CardContent>
-        </Card>
-        <Button variant="outline" asChild>
-          <Link to={`/student/assignments/${id}/result`}>View result</Link>
-        </Button>
-      </div>
-    )
+    return <StudentAssignmentDetail assignment={assignment} id={id} />
   }
 
   const timingStatus = getAssignmentTimingStatus(assignment)
@@ -101,9 +74,14 @@ export function AssignmentDetailPage() {
         title={assignment.title}
         description={assignment.description ?? formatAssignmentTimingMeta(assignment)}
         actions={
-          <Button variant="outline" asChild>
-            <Link to="/lecturer/assignments">Back to assignments</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to={`/lecturer/assignments/${id}/edit`}>Edit</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/lecturer/assignments">Back to assignments</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -262,6 +240,86 @@ export function AssignmentDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function StudentAssignmentDetail({
+  assignment,
+  id,
+}: {
+  assignment: AssignmentDetail
+  id: string
+}) {
+  const timingStatus = getAssignmentTimingStatus(assignment)
+
+  const attemptQuery = useQuery({
+    queryKey: [...queryKeys.assignments.all, id, 'attempt'],
+    queryFn: () => assignmentsApi.getAttempt(id),
+    enabled: Boolean(id),
+    retry: false,
+  })
+
+  const attempt = attemptQuery.data?.submission
+  const inProgress = attempt?.status === 'IN_PROGRESS'
+  const submitted = attempt ? isSubmissionCompleted(attempt.status) : false
+  const resultsAvailable = submitted && canViewResults(assignment)
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={assignment.title}
+        description={assignment.description ?? undefined}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/student/assignments">Back</Link>
+            </Button>
+            {timingStatus === 'open' && !submitted ? (
+              <Button asChild>
+                <Link to={`/student/assignments/${id}/take`}>
+                  {inProgress ? 'Continue assignment' : 'Start assignment'}
+                </Link>
+              </Button>
+            ) : null}
+            {resultsAvailable ? (
+              <>
+                <Button variant="outline" asChild>
+                  <Link to={`/student/assignments/${id}/result`}>View result</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to={`/student/assignments/${id}/review`}>Review answers</Link>
+                </Button>
+              </>
+            ) : null}
+          </div>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <AssignmentTimingBadge status={timingStatus} />
+        {inProgress ? (
+          <span className="text-xs text-muted-foreground">Attempt in progress</span>
+        ) : null}
+        {submitted && !resultsAvailable ? (
+          <span className="text-xs text-muted-foreground">Submitted — results pending</span>
+        ) : null}
+      </div>
+
+      <Card>
+        <CardContent className="space-y-2 pt-6 text-sm">
+          <p>Opens: {formatDateTime(assignment.startAt)}</p>
+          <p>Closes: {formatDateTime(assignment.endAt)}</p>
+          <p>Duration: {assignment.durationMinutes} minutes</p>
+          <p>Questions: {assignment.questions.length}</p>
+          {timingStatus === 'upcoming' ? (
+            <p className="text-muted-foreground">This assignment is not open yet.</p>
+          ) : null}
+          {timingStatus === 'closed' && !submitted ? (
+            <p className="text-muted-foreground">The assignment window has closed.</p>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   )
 }

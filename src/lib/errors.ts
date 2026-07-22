@@ -20,7 +20,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   DEADLINE_PASSED: 'The time limit for this assignment has passed.',
   RESULTS_NOT_AVAILABLE: 'Results are not available yet.',
   IN_PROGRESS: 'Complete your attempt before viewing results.',
-  INVALID_QUESTION: 'Invalid question data.',
+  NO_ATTEMPT: 'You have not started this assignment yet.',
   INVALID_TAGS: 'One or more selected tags are invalid.',
   INVALID_AUDIENCE: 'Invalid audience selection.',
   CLASS_ACCESS_DENIED: 'You do not have access to this class.',

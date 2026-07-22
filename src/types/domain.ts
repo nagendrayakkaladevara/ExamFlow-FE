@@ -118,6 +118,16 @@ export interface SubmissionRecord {
   updatedAt: string
 }
 
+export interface AttemptAnswer {
+  assignmentQuestionId: string
+  answer: { selectedOptionIds?: string[]; text?: string } | null
+}
+
+export interface AttemptRecord {
+  submission: SubmissionRecord
+  answers: AttemptAnswer[]
+}
+
 export interface AssignmentResult {
   submissionId: string
   status: SubmissionStatus
@@ -133,6 +143,10 @@ export interface AssignmentResult {
     marksAwarded: number
     explanation: string | null
     correctText: string | null
+    title: string
+    description: string
+    type: QuestionType
+    imageUrl: string | null
     options: { id: string; optionText: string; isCorrect: boolean }[]
   }[]
 }
@@ -196,8 +210,15 @@ export interface StudentAnalytics {
     title: string
     score: number | null
     maxScore: number | null
+    correctCount: number | null
+    incorrectCount: number | null
+    percentage: number | null
     submittedAt: string | null
     status: string
+  }[]
+  trend: {
+    submittedAt: string
+    percentage: number | null
   }[]
 }
 
@@ -207,6 +228,11 @@ export interface LecturerClassAnalytics {
   assignmentCount: number
   completedSubmissions: number
   completionRate: number
+  passed: number
+  failed: number
+  highestScore: number | null
+  lowestScore: number | null
+  averageScore: number | null
 }
 
 export interface LecturerAssignmentAnalytics {
@@ -234,6 +260,7 @@ export interface AdminOverview {
   activeClasses: number
   totalAssignments: number
   completedSubmissions: number
+  averageCompletionRate: number
 }
 
 export interface UploadResult {

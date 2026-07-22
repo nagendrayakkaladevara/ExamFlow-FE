@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table'
 import { usersApi } from '@/features/users/api'
 import { queryKeys } from '@/config/query-keys'
+import { formatDateTime } from '@/lib/format'
 import { ActiveBadge, RoleBadge } from '@/components/shared/StatusBadge'
 
 export function UsersListPage() {
@@ -93,6 +94,7 @@ export function UsersListPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Last active</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -108,6 +110,9 @@ export function UsersListPage() {
                   </TableCell>
                   <TableCell>
                     <ActiveBadge active={user.isActive} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="ghost" size="sm">

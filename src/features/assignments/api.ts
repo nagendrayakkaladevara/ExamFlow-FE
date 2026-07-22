@@ -3,6 +3,7 @@ import type {
   AssignmentDetail,
   AssignmentRecord,
   AssignmentResult,
+  AttemptRecord,
   SubmissionRecord,
 } from '@/types/domain'
 import type { ResultPolicy } from '@/types/enums'
@@ -47,6 +48,8 @@ export const assignmentsApi = {
     api.post<AssignmentDetail>(`/assignments/${id}/questions`, body),
 
   start: (id: string) => api.post<SubmissionRecord>(`/assignments/${id}/start`, {}),
+
+  getAttempt: (id: string) => api.get<AttemptRecord>(`/assignments/${id}/attempt`),
 
   autosave: (id: string, body: AutosaveInput) =>
     api.post<{ saved: boolean }>(`/assignments/${id}/autosave`, body),
