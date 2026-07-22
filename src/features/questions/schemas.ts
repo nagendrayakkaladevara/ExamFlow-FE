@@ -34,7 +34,14 @@ export const questionFormSchema = z
     topic: z.string().max(150, 'Topic must be at most 150 characters').optional(),
     correctText: z.string().optional(),
     tagIds: z.array(z.string().uuid()),
-    options: z.array(questionOptionSchema),
+    // Option text length is validated in superRefine for MCQ types only.
+    // FILL_BLANK keeps stale options in form state while those fields are hidden.
+    options: z.array(
+      z.object({
+        optionText: z.string(),
+        isCorrect: z.boolean(),
+      }),
+    ),
     imageUrl: z.string().nullable().optional(),
     imageBlobKey: z
       .string()
@@ -62,6 +69,16 @@ export const questionFormSchema = z
       })
       return
     }
+
+    data.options.forEach((option, index) => {
+      if (!option.optionText.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['options', index, 'optionText'],
+          message: 'Option text is required',
+        })
+      }
+    })
 
     const correctCount = data.options.filter((option) => option.isCorrect).length
 

@@ -211,6 +211,7 @@ export function QuestionFormPage() {
     form.setValue('type', nextType, { shouldValidate: true })
 
     if (nextType === 'FILL_BLANK') {
+      replace([])
       return
     }
 
