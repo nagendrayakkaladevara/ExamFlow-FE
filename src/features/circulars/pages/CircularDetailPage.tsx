@@ -73,9 +73,9 @@ export function CircularDetailPage() {
         variants={fadeIn}
         transition={panelTransition}
       >
-        <div className="flex justify-end gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end [&_[data-slot=button]]:min-h-11 [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:min-h-9 sm:[&_[data-slot=button]]:w-auto">
           {canEdit ? (
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" asChild>
               <Link to={`${basePath}/circulars/${id}/edit`}>Edit</Link>
             </Button>
           ) : null}
