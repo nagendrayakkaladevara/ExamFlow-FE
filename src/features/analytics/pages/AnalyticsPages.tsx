@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
-import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -26,12 +26,14 @@ import { ActivityFeedList } from '@/features/analytics/components/ActivityFeedLi
 import { AdminTrendChart } from '@/features/analytics/components/AdminTrendChart'
 import { AlertsList } from '@/features/analytics/components/AlertsList'
 import { ClassAnalyticsGrid } from '@/features/analytics/components/ClassAnalyticsGrid'
+import { ClassAssignmentChart } from '@/features/analytics/components/ClassAssignmentChart'
 import { DateRangeFilter } from '@/features/analytics/components/DateRangeFilter'
 import { ExportCsvButton } from '@/features/analytics/components/ExportCsvButton'
 import { PerformanceTrendChart } from '@/features/analytics/components/PerformanceTrendChart'
 import { WeakTopicsPanel } from '@/features/analytics/components/WeakTopicsPanel'
 import { analyticsApi } from '@/features/analytics/api'
 import { useDateRangeFilter } from '@/features/analytics/hooks/useDateRangeFilter'
+import { useAssignmentSummaries } from '@/features/analytics/hooks/useAssignmentSummaries'
 import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
@@ -40,6 +42,13 @@ import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
 import { subDays } from 'date-fns'
 import type { AdminTrends } from '@/types/domain'
+
+const ADMIN_TABS = ['overview', 'activity', 'trends', 'alerts', 'reports'] as const
+type AdminTab = (typeof ADMIN_TABS)[number]
+
+function isAdminTab(value: string | null): value is AdminTab {
+  return ADMIN_TABS.includes(value as AdminTab)
+}
 
 export function AnalyticsPage() {
   const role = useAuthStore((s) => s.user?.role)
@@ -148,11 +157,32 @@ function StudentAnalyticsPage() {
 }
 
 function LecturerAnalyticsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const { classes } = useClassOptions()
+  const classIdFromUrl = searchParams.get('classId') ?? ''
   const [selectedClassId, setSelectedClassId] = useState('')
   const dateRange = useDateRangeFilter('all')
 
-  const activeClassId = selectedClassId || classes[0]?.id || ''
+  const activeClassId = selectedClassId || classIdFromUrl || classes[0]?.id || ''
+
+  useEffect(() => {
+    if (classIdFromUrl && classes.some((cls) => cls.id === classIdFromUrl)) {
+      setSelectedClassId(classIdFromUrl)
+    }
+  }, [classIdFromUrl, classes])
+
+  const handleClassChange = (classId: string) => {
+    setSelectedClassId(classId)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (classId) next.set('classId', classId)
+        else next.delete('classId')
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   const summaryQuery = useQuery({
     queryKey: queryKeys.analytics.lecturerSummary(dateRange.params),
@@ -171,6 +201,9 @@ function LecturerAnalyticsPage() {
     enabled: Boolean(activeClassId),
     select: (assignments) => assignments.filter((item) => item.classId === activeClassId),
   })
+
+  const assignmentIds = assignmentsQuery.data?.map((assignment) => assignment.id) ?? []
+  const assignmentSummaries = useAssignmentSummaries(assignmentIds)
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
@@ -224,7 +257,7 @@ function LecturerAnalyticsPage() {
             {summaryQuery.data.classes.map((cls) => (
               <Link
                 key={cls.classId}
-                to={`/lecturer/classes/${cls.classId}`}
+                to={`/lecturer/analytics?classId=${cls.classId}`}
                 className="rounded-lg border bg-card p-6 transition-colors hover:bg-muted/30"
               >
                 <p className="font-semibold">{cls.className}</p>
@@ -241,7 +274,7 @@ function LecturerAnalyticsPage() {
       {classes.length > 0 ? (
         <div className="max-w-sm space-y-1">
           <Label htmlFor="class-select">Class detail</Label>
-          <Select value={activeClassId} onValueChange={setSelectedClassId}>
+          <Select value={activeClassId} onValueChange={handleClassChange}>
             <SelectTrigger id="class-select">
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
@@ -268,6 +301,13 @@ function LecturerAnalyticsPage() {
 
       {activeClassId ? (
         <ClassAnalyticsGrid data={classQuery.data} isLoading={classQuery.isLoading} />
+      ) : null}
+
+      {activeClassId && assignmentIds.length > 0 ? (
+        <ClassAssignmentChart
+          items={assignmentSummaries.items}
+          isLoading={assignmentSummaries.isLoading}
+        />
       ) : null}
 
       {activeClassId && (assignmentsQuery.data?.length ?? 0) > 0 ? (
@@ -310,27 +350,65 @@ function LecturerAnalyticsPage() {
 }
 
 function AdminAnalyticsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { classes } = useClassOptions()
   const dateRange = useDateRangeFilter('30d')
-  const [activityCursor, setActivityCursor] = useState<string | undefined>()
+  const tabParam = searchParams.get('tab')
+  const activeTab: AdminTab = isAdminTab(tabParam) ? tabParam : 'overview'
   const [trendMetric, setTrendMetric] = useState<AdminTrends['metric']>('submissions')
   const [trendInterval, setTrendInterval] = useState<AdminTrends['interval']>('week')
-  const [reportType, setReportType] = useState('overview')
+  const reportTypeParam = searchParams.get('reportType')
+  const [reportType, setReportType] = useState(
+    reportTypeParam ?? 'overview',
+  )
+  const [reportClassId, setReportClassId] = useState(searchParams.get('classId') ?? '')
+  const [reportAssignmentId, setReportAssignmentId] = useState(
+    searchParams.get('assignmentId') ?? '',
+  )
+
+  useEffect(() => {
+    if (reportTypeParam) setReportType(reportTypeParam)
+    const classId = searchParams.get('classId')
+    if (classId) setReportClassId(classId)
+    const assignmentId = searchParams.get('assignmentId')
+    if (assignmentId) setReportAssignmentId(assignmentId)
+  }, [reportTypeParam, searchParams])
+
+  const setActiveTab = (tab: AdminTab) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('tab', tab)
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   const overviewQuery = useQuery({
     queryKey: queryKeys.analytics.adminOverview(dateRange.params),
     queryFn: () => analyticsApi.adminOverview(dateRange.params),
   })
 
-  const activityQuery = useQuery({
-    queryKey: queryKeys.analytics.adminActivity({ limit: 20, cursor: activityCursor }),
-    queryFn: () => analyticsApi.adminActivity({ limit: 20, cursor: activityCursor }),
+  const activityQuery = useInfiniteQuery({
+    queryKey: queryKeys.analytics.adminActivity({ limit: 20 }),
+    queryFn: ({ pageParam }) =>
+      analyticsApi.adminActivity({ limit: 20, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   })
 
+  const activityItems = activityQuery.data?.pages.flatMap((page) => page.items) ?? []
+
   const trendRange = useMemo(() => {
+    if (dateRange.params.from && dateRange.params.to) {
+      return { from: dateRange.params.from, to: dateRange.params.to }
+    }
+
     const to = new Date()
     const from = subDays(to, 90)
     return { from: from.toISOString(), to: to.toISOString() }
-  }, [])
+  }, [dateRange.params.from, dateRange.params.to])
 
   const trendsQuery = useQuery({
     queryKey: queryKeys.analytics.adminTrends({
@@ -352,6 +430,67 @@ function AdminAnalyticsPage() {
     queryFn: () => analyticsApi.adminAlerts({ threshold: 0.5 }),
   })
 
+  const reportAssignmentsQuery = useQuery({
+    queryKey: queryKeys.assignments.list({ classId: reportClassId, scope: 'admin-reports' }),
+    queryFn: () => assignmentsApi.list(),
+    enabled: Boolean(reportClassId) && reportType === 'assignment-results',
+    select: (assignments) => assignments.filter((item) => item.classId === reportClassId),
+  })
+
+  const adminClassQuery = useQuery({
+    queryKey: queryKeys.analytics.adminClass(reportClassId, dateRange.params),
+    queryFn: () => analyticsApi.adminClass(reportClassId, dateRange.params),
+    enabled: Boolean(reportClassId) && reportType === 'class-performance',
+  })
+
+  const reportChartItems =
+    adminClassQuery.data?.assignments.map((assignment) => ({
+      assignmentId: assignment.assignmentId,
+      title: assignment.title,
+      completionRate: assignment.completionRate,
+      averageScore: assignment.averageScore,
+    })) ?? []
+
+  const handleReportTypeChange = (value: string) => {
+    setReportType(value)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('reportType', value)
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const handleReportClassChange = (classId: string) => {
+    setReportClassId(classId)
+    setReportAssignmentId('')
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (classId) next.set('classId', classId)
+        else next.delete('classId')
+        next.delete('assignmentId')
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const handleReportAssignmentChange = (assignmentId: string) => {
+    setReportAssignmentId(assignmentId)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (assignmentId) next.set('assignmentId', assignmentId)
+        else next.delete('assignmentId')
+        return next
+      },
+      { replace: true },
+    )
+  }
+
   if (overviewQuery.isLoading) return <Skeleton className="h-64 w-full" />
   if (overviewQuery.error) {
     return <QueryError error={overviewQuery.error} onRetry={() => overviewQuery.refetch()} />
@@ -364,7 +503,16 @@ function AdminAnalyticsPage() {
         description="Institution-wide performance overview and reports."
       />
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <DateRangeFilter
+        preset={dateRange.preset}
+        onPresetChange={dateRange.setPreset}
+        customFrom={dateRange.customFrom}
+        customTo={dateRange.customTo}
+        onCustomFromChange={dateRange.setCustomFrom}
+        onCustomToChange={dateRange.setCustomTo}
+      />
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AdminTab)} className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -374,15 +522,6 @@ function AdminAnalyticsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <DateRangeFilter
-            preset={dateRange.preset}
-            onPresetChange={dateRange.setPreset}
-            customFrom={dateRange.customFrom}
-            customTo={dateRange.customTo}
-            onCustomFromChange={dateRange.setCustomFrom}
-            onCustomToChange={dateRange.setCustomTo}
-          />
-
           {overviewQuery.data ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <MetricCard
@@ -409,13 +548,17 @@ function AdminAnalyticsPage() {
 
         <TabsContent value="activity">
           <ActivityFeedList
-            items={activityQuery.data?.items ?? []}
+            items={activityItems}
             isLoading={activityQuery.isLoading}
-            nextCursor={activityQuery.data?.nextCursor}
-            isLoadingMore={activityQuery.isFetching}
+            nextCursor={
+              activityQuery.hasNextPage
+                ? activityQuery.data?.pages.at(-1)?.nextCursor
+                : null
+            }
+            isLoadingMore={activityQuery.isFetchingNextPage}
             onLoadMore={() => {
-              if (activityQuery.data?.nextCursor) {
-                setActivityCursor(activityQuery.data.nextCursor)
+              if (activityQuery.hasNextPage && !activityQuery.isFetchingNextPage) {
+                void activityQuery.fetchNextPage()
               }
             }}
           />
@@ -472,19 +615,67 @@ function AdminAnalyticsPage() {
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
-          <div className="max-w-sm space-y-1">
-            <Label>Report type</Label>
-            <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="overview">Institution overview</SelectItem>
-                <SelectItem value="class-performance">Class performance</SelectItem>
-                <SelectItem value="assignment-results">Assignment results</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
+            <div className="space-y-1">
+              <Label>Report type</Label>
+              <Select value={reportType} onValueChange={handleReportTypeChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="overview">Institution overview</SelectItem>
+                  <SelectItem value="class-performance">Class performance</SelectItem>
+                  <SelectItem value="assignment-results">Assignment results</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {reportType === 'class-performance' || reportType === 'assignment-results' ? (
+              <div className="space-y-1">
+                <Label>Class</Label>
+                <Select value={reportClassId} onValueChange={handleReportClassChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                        {cls.code ? ` (${cls.code})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            {reportType === 'assignment-results' && reportClassId ? (
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Assignment</Label>
+                <Select value={reportAssignmentId} onValueChange={handleReportAssignmentChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select assignment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(reportAssignmentsQuery.data ?? []).map((assignment) => (
+                      <SelectItem key={assignment.id} value={assignment.id}>
+                        {assignment.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
+
+          {reportType === 'class-performance' && reportClassId ? (
+            <ClassAssignmentChart
+              items={reportChartItems}
+              isLoading={adminClassQuery.isLoading}
+              metric="averageScore"
+            />
+          ) : null}
+
           <ExportCsvButton
             label="Download report"
             filename={`${reportType}-report.csv`}
@@ -492,7 +683,14 @@ function AdminAnalyticsPage() {
               analyticsApi.exportAdminReport(reportType, {
                 from: dateRange.params.from,
                 to: dateRange.params.to,
+                classId: reportClassId || undefined,
+                assignmentId: reportAssignmentId || undefined,
               })
+            }
+            disabled={
+              (reportType === 'class-performance' && !reportClassId) ||
+              (reportType === 'assignment-results' &&
+                (!reportClassId || !reportAssignmentId))
             }
           />
         </TabsContent>

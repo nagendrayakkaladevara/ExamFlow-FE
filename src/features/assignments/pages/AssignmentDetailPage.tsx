@@ -12,6 +12,7 @@ import { AssignmentStudentsPanel } from '@/features/assignments/components/Assig
 import { assignmentsApi } from '@/features/assignments/api'
 import { analyticsApi } from '@/features/analytics/api'
 import { AssignmentExportButton } from '@/features/analytics/components/ExportCsvButton'
+import { QuestionBreakdownTable } from '@/features/analytics/components/QuestionBreakdownTable'
 import { AssignmentTimingBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
 import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
 import {
@@ -236,6 +237,7 @@ export function AssignmentDetailPage() {
             Students
             {analytics ? ` (${analytics.submitted}/${analytics.enrolled})` : ''}
           </TabsTrigger>
+          <TabsTrigger value="analysis">Analysis</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -334,6 +336,10 @@ export function AssignmentDetailPage() {
                 : undefined
             }
           />
+        </TabsContent>
+
+        <TabsContent value="analysis">
+          <QuestionBreakdownTable assignmentId={id} />
         </TabsContent>
       </Tabs>
     </div>

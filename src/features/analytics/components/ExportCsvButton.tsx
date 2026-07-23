@@ -11,6 +11,7 @@ interface ExportCsvButtonProps {
   filename: string
   onExport: () => Promise<Blob>
   variant?: 'default' | 'outline' | 'secondary'
+  disabled?: boolean
 }
 
 export function ExportCsvButton({
@@ -18,6 +19,7 @@ export function ExportCsvButton({
   filename,
   onExport,
   variant = 'outline',
+  disabled = false,
 }: ExportCsvButtonProps) {
   const [isExporting, setIsExporting] = useState(false)
 
@@ -35,7 +37,12 @@ export function ExportCsvButton({
   }
 
   return (
-    <Button type="button" variant={variant} disabled={isExporting} onClick={() => void handleExport()}>
+    <Button
+      type="button"
+      variant={variant}
+      disabled={disabled || isExporting}
+      onClick={() => void handleExport()}
+    >
       {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
       {label}
     </Button>

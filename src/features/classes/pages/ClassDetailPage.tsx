@@ -238,6 +238,11 @@ export function ClassDetailPage() {
                 </Button>
               </>
             ) : null}
+            {isLecturer ? (
+              <Button variant="outline" asChild>
+                <Link to={`/lecturer/analytics?classId=${id}`}>View analytics</Link>
+              </Button>
+            ) : null}
             <Button variant="outline" asChild>
               <Link to={`${basePath}/classes`}>Back to classes</Link>
             </Button>
@@ -421,7 +426,15 @@ export function ClassDetailPage() {
                             Results
                           </Link>
                         </Button>
-                      ) : null}
+                      ) : (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link
+                            to={`/admin/analytics?tab=reports&reportType=assignment-results&classId=${id}&assignmentId=${assignment.id}`}
+                          >
+                            Export results
+                          </Link>
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
