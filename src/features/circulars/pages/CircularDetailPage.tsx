@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
+import { ShareLinkButton } from '@/components/shared/ShareLinkButton'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { circularsApi } from '@/features/circulars/api'
@@ -61,6 +62,7 @@ export function CircularDetailPage() {
   if (!query.data) return null
 
   const circular = query.data
+  const shareUrl = `${window.location.origin}${basePath}/circulars/${id}`
 
   return (
     <AnimatePresence mode="wait">
@@ -74,6 +76,7 @@ export function CircularDetailPage() {
         transition={panelTransition}
       >
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end [&_[data-slot=button]]:min-h-11 [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:min-h-9 sm:[&_[data-slot=button]]:w-auto">
+          <ShareLinkButton url={shareUrl} title={circular.title} />
           {canEdit ? (
             <Button variant="outline" asChild>
               <Link to={`${basePath}/circulars/${id}/edit`}>Edit</Link>
