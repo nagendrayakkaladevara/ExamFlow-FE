@@ -55,8 +55,8 @@ function AnswerReviewCard({
               variant="outline"
               className={cn(
                 answer.isCorrect
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                  : 'border-destructive/30 bg-destructive/5 text-destructive',
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'border-destructive/30 bg-destructive/5 text-destructive dark:border-destructive/40 dark:bg-destructive/10',
               )}
             >
               {answer.isCorrect ? 'Correct' : 'Incorrect'}
@@ -68,7 +68,11 @@ function AnswerReviewCard({
         </div>
 
         {answer.imageUrl ? (
-          <img src={answer.imageUrl} alt="" className="max-h-48 rounded-md border" />
+          <img
+            src={answer.imageUrl}
+            alt=""
+            className="max-h-48 rounded-md border bg-background object-contain"
+          />
         ) : null}
 
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -98,8 +102,11 @@ function AnswerReviewCard({
                   key={option.id}
                   className={cn(
                     'rounded-md border px-3 py-2 text-sm',
-                    isCorrectOption && 'border-emerald-200 bg-emerald-50',
-                    selected && !isCorrectOption && 'border-destructive/30 bg-destructive/5',
+                    isCorrectOption &&
+                      'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/60',
+                    selected &&
+                      !isCorrectOption &&
+                      'border-destructive/30 bg-destructive/5 dark:border-destructive/40 dark:bg-destructive/10',
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
