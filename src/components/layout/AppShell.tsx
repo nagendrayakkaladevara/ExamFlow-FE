@@ -5,8 +5,14 @@ import { AppSidebar } from '@/components/layout/app-sidebar'
 import { InstitutionLogo } from '@/components/layout/institution-logo'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import {
+  useScrollToTopOnNavigate,
+  useWindowScrollToTopOnNavigate,
+} from '@/hooks/useScrollToTopOnNavigate'
 
 export function AppShell() {
+  const mainRef = useScrollToTopOnNavigate<HTMLElement>()
+
   return (
     <SidebarProvider
       defaultOpen={false}
@@ -20,7 +26,7 @@ export function AppShell() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main ref={mainRef} className="flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </main>
       </SidebarInset>
@@ -29,6 +35,8 @@ export function AppShell() {
 }
 
 export function ExamLayout() {
+  useWindowScrollToTopOnNavigate()
+
   return (
     <div className="relative min-h-svh bg-background">
       <InstitutionLogo className="absolute top-4 right-4 z-10 sm:top-6 sm:right-6" />
@@ -38,6 +46,8 @@ export function ExamLayout() {
 }
 
 export function PublicLayout() {
+  useWindowScrollToTopOnNavigate()
+
   return (
     <div className="relative min-h-svh">
       <Outlet />
