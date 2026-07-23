@@ -82,7 +82,11 @@ export function AssignmentsListPage() {
                   <TableCell>{formatDateTime(assignment.endAt)}</TableCell>
                   <TableCell>{assignment.durationMinutes} min</TableCell>
                   <TableCell className="text-right">
-                    <Button asChild variant="ghost" size="sm">
+                    <Button
+                      asChild
+                      variant={isLecturer ? 'default' : 'ghost'}
+                      size="sm"
+                    >
                       <Link
                         to={
                           isLecturer

@@ -2,7 +2,9 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
+import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -67,6 +69,12 @@ export function AssignmentDetailPage() {
   const timingStatus = getAssignmentTimingStatus(assignment)
   const totalMarks = getTotalMarks(assignment.questions)
   const analytics = analyticsQuery.data
+  const assignmentStarted = Date.now() >= new Date(assignment.startAt).getTime()
+
+  const handleRefresh = () => {
+    void query.refetch()
+    void analyticsQuery.refetch()
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
@@ -75,9 +83,28 @@ export function AssignmentDetailPage() {
         description={assignment.description ?? formatAssignmentTimingMeta(assignment)}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link to={`/lecturer/assignments/${id}/edit`}>Edit</Link>
-            </Button>
+            {assignmentStarted ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button variant="outline" disabled>
+                      Edit
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  You cannot edit after the start time of the assignment.
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button variant="outline" asChild>
+                <Link to={`/lecturer/assignments/${id}/edit`}>Edit</Link>
+              </Button>
+            )}
+            <RefreshButton
+              onClick={handleRefresh}
+              isRefreshing={query.isFetching || analyticsQuery.isFetching}
+            />
             <Button variant="outline" asChild>
               <Link to="/lecturer/assignments">Back to assignments</Link>
             </Button>
