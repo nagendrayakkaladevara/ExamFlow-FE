@@ -30,9 +30,18 @@ export function AlertsList({ alerts }: AlertsListProps) {
               {formatPercent(alert.threshold)})
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/admin/classes/${alert.classId}`}>View class</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/admin/classes/${alert.classId}`}>View class</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link
+                to={`/admin/analytics?tab=reports&reportType=assignment-results&classId=${alert.classId}&assignmentId=${alert.assignmentId}`}
+              >
+                Export results
+              </Link>
+            </Button>
+          </div>
         </li>
       ))}
     </ul>

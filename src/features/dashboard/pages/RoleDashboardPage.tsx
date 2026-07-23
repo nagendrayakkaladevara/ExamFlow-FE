@@ -5,6 +5,7 @@ import {
   BarChart3,
   BookOpen,
   ClipboardList,
+  FileText,
   GraduationCap,
   KeyRound,
   Plus,
@@ -25,6 +26,7 @@ import {
   sortAssignmentsByRelevance,
 } from '@/features/dashboard/utils'
 import { analyticsApi } from '@/features/analytics/api'
+import { WeakTopicsPreview } from '@/features/analytics/components/WeakTopicsPreview'
 import { assignmentsApi } from '@/features/assignments/api'
 import { circularsApi } from '@/features/circulars/api'
 import { formatCircularFeedMeta } from '@/features/circulars/circular-meta'
@@ -74,6 +76,7 @@ function AdminDashboard() {
             <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
+            <MetricCardSkeleton />
           </>
         ) : overviewQuery.data ? (
           <>
@@ -97,6 +100,11 @@ function AdminDashboard() {
               value={overviewQuery.data.totalAssignments}
               description={`${overviewQuery.data.completedSubmissions} submissions`}
             />
+            <MetricCard
+              label="Average completion"
+              value={formatPercent(overviewQuery.data.averageCompletionRate)}
+              description="Institution-wide"
+            />
           </>
         ) : null}
       </div>
@@ -106,7 +114,7 @@ function AdminDashboard() {
           <DashboardPanel
             title="Recent activity"
             description="Latest publishes and announcements"
-            viewAllHref={`${basePath}/analytics`}
+            viewAllHref={`${basePath}/analytics?tab=activity`}
           >
             {activityQuery.isLoading ? (
               <ActivitySkeleton />
@@ -120,7 +128,7 @@ function AdminDashboard() {
                       ? `${item.type.replaceAll('_', ' ').toLowerCase()} · ${item.actorName}`
                       : item.type.replaceAll('_', ' ').toLowerCase()
                   }
-                  href={`${basePath}/analytics`}
+                  href={`${basePath}/analytics?tab=activity`}
                   trailing={
                     <span className="text-xs text-muted-foreground">
                       {formatActivityTimestamp(item.occurredAt)}
@@ -141,6 +149,7 @@ function AdminDashboard() {
           actions={[
             { label: 'Add user', href: `${basePath}/users/new`, icon: Plus, variant: 'default' },
             { label: 'Manage classes', href: `${basePath}/classes`, icon: GraduationCap },
+            { label: 'View reports', href: `${basePath}/analytics?tab=reports`, icon: FileText },
             { label: 'View analytics', href: `${basePath}/analytics`, icon: BarChart3 },
             { label: 'Manage users', href: `${basePath}/users`, icon: Users },
           ]}
@@ -344,6 +353,11 @@ function StudentDashboard() {
     queryFn: () => analyticsApi.studentMe(),
   })
 
+  const tagQuery = useQuery({
+    queryKey: queryKeys.analytics.studentByTag(),
+    queryFn: () => analyticsApi.studentByTag(),
+  })
+
   const assignmentsQuery = useQuery({
     queryKey: queryKeys.assignments.list({ scope: 'dashboard-student' }),
     queryFn: () => assignmentsApi.list(),
@@ -466,6 +480,12 @@ function StudentDashboard() {
         </div>
 
         <div className="space-y-6">
+          <WeakTopicsPreview
+            data={tagQuery.data}
+            isLoading={tagQuery.isLoading}
+            analyticsHref={`${basePath}/analytics`}
+          />
+
           <QuickActions
             title="Quick links"
             actions={[

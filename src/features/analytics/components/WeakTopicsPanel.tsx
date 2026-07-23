@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { QueryError } from '@/components/feedback/EmptyState'
+import { TagPerformanceChart } from '@/features/analytics/components/TagPerformanceChart'
 import { formatPercent } from '@/lib/format'
 import type { StudentTagAnalytics } from '@/types/domain'
 
@@ -26,10 +27,13 @@ export function WeakTopicsPanel({ data, isLoading, error, onRetry }: WeakTopicsP
   if (!data) return null
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      {data.byTag.length > 0 ? <TagPerformanceChart tags={data.byTag} /> : null}
+
+      <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Topic performance</CardTitle>
+          <CardTitle>Topic breakdown</CardTitle>
         </CardHeader>
         <CardContent>
           {data.byTag.length === 0 ? (
@@ -86,6 +90,7 @@ export function WeakTopicsPanel({ data, isLoading, error, onRetry }: WeakTopicsP
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }
