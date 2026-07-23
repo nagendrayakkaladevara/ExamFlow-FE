@@ -9,8 +9,8 @@ import { circularsApi } from '@/features/circulars/api'
 import { useAuthStore } from '@/features/auth/store'
 import { queryKeys } from '@/config/query-keys'
 import { ACTIVE_PAGE_POLL_INTERVAL_MS } from '@/config/query-polling'
-import { formatDateTime } from '@/lib/format'
 import { useRoleBasePath } from '@/hooks/useRolePath'
+import { CircularDetailMeta } from '@/features/circulars/circular-meta'
 import {
   fadeIn,
   fadeInUp,
@@ -101,9 +101,7 @@ export function CircularDetailPage() {
               >
                 <p className="text-xs text-muted-foreground">Circular</p>
                 <h1 className="text-3xl font-semibold tracking-tight">{circular.title}</h1>
-                <p className="text-sm text-muted-foreground">
-                  Published {formatDateTime(circular.publishAt)}
-                </p>
+                <CircularDetailMeta circular={circular} />
               </motion.header>
 
               {circular.coverImageUrl ? (

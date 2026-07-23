@@ -156,6 +156,11 @@ export interface AudienceRecord {
   targetId: string | null
 }
 
+export interface LastEditedBy {
+  id: string
+  name: string
+}
+
 export interface CircularRecord {
   id: string
   title: string
@@ -164,6 +169,8 @@ export interface CircularRecord {
   publishAt: string
   isPublished: boolean
   createdAt: string
+  lastEditedBy: LastEditedBy | null
+  lastEditedAt: string | null
   audiences: AudienceRecord[]
 }
 

@@ -27,6 +27,7 @@ import {
 import { analyticsApi } from '@/features/analytics/api'
 import { assignmentsApi } from '@/features/assignments/api'
 import { circularsApi } from '@/features/circulars/api'
+import { formatCircularFeedMeta, hasCircularEdits } from '@/features/circulars/circular-meta'
 import { pollsApi } from '@/features/polls/api'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime } from '@/lib/format'
@@ -155,7 +156,7 @@ function AdminDashboard() {
             <DashboardListItem
               key={circular.id}
               title={circular.title}
-              meta={`Published ${formatDateTime(circular.publishAt)}`}
+              meta={formatCircularFeedMeta(circular, { includePublishedPrefix: true })}
               href={`${basePath}/circulars/${circular.id}`}
             />
           ))
@@ -325,7 +326,7 @@ function LecturerDashboard() {
                 <DashboardListItem
                   key={circular.id}
                   title={circular.title}
-                  meta={formatDateTime(circular.publishAt)}
+                  meta={formatCircularFeedMeta(circular)}
                   href={`${basePath}/circulars/${circular.id}`}
                 />
               ))
@@ -491,7 +492,7 @@ function StudentDashboard() {
                 <DashboardListItem
                   key={circular.id}
                   title={circular.title}
-                  meta={formatDateTime(circular.publishAt)}
+                  meta={formatCircularFeedMeta(circular)}
                   href={`${basePath}/circulars/${circular.id}`}
                 />
               ))
@@ -598,9 +599,11 @@ function buildActivityFeed(
   const circularItems: ActivityItem[] = circulars.map((circular) => ({
     id: `circular-${circular.id}`,
     title: circular.title,
-    meta: 'Circular published',
-    timestamp: formatActivityTimestamp(circular.publishAt),
-    sortAt: circular.publishAt,
+    meta: hasCircularEdits(circular) ? 'Circular updated' : 'Circular published',
+    timestamp: formatActivityTimestamp(
+      hasCircularEdits(circular) ? circular.lastEditedAt! : circular.publishAt,
+    ),
+    sortAt: hasCircularEdits(circular) ? circular.lastEditedAt! : circular.publishAt,
     href: `/admin/circulars/${circular.id}`,
   }))
 
