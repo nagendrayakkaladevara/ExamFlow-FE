@@ -77,6 +77,8 @@ export interface AssignmentRecord {
   isPublished: boolean
   createdAt: string
   updatedAt: string
+  /** Present on list/detail responses for students when they have started or submitted. */
+  mySubmission?: Pick<SubmissionRecord, 'status' | 'submittedAt'> | null
 }
 
 export interface AssignmentQuestion {
