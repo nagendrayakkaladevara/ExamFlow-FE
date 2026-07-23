@@ -10,6 +10,8 @@ interface DashboardPanelProps {
   viewAllLabel?: string
   children: ReactNode
   className?: string
+  /** Cap list height and scroll when content exceeds ~5 rows. Default: true */
+  scrollable?: boolean
 }
 
 export function DashboardPanel({
@@ -19,6 +21,7 @@ export function DashboardPanel({
   viewAllLabel = 'View all',
   children,
   className,
+  scrollable = true,
 }: DashboardPanelProps) {
   return (
     <section className={cn('rounded-lg border bg-card', className)}>
@@ -35,7 +38,14 @@ export function DashboardPanel({
           </Button>
         ) : null}
       </div>
-      <div className="px-6 py-2">{children}</div>
+      <div
+        className={cn(
+          'px-6 py-2',
+          scrollable && 'max-h-80 overflow-y-auto overscroll-contain',
+        )}
+      >
+        {children}
+      </div>
     </section>
   )
 }
