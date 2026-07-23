@@ -1,6 +1,9 @@
-import { useMemo } from 'react'
-import { EmptyState } from '@/components/feedback/EmptyState'
+import { useMemo, useState } from 'react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Search } from 'lucide-react'
+import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -10,98 +13,173 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAssignmentRoster } from '@/features/analytics/hooks/useAssignmentRoster'
+import { formatStudentLabel } from '@/features/analytics/utils/student-label'
 import {
-  formatStudentLabel,
-  getPendingCount,
-  partitionStudents,
-  type StudentRankingRow,
-} from '@/features/assignments/utils'
+  getRosterStatusLabel,
+  isCompletedStatus,
+} from '@/features/analytics/utils/roster-status'
+import { MetricCard } from '@/features/dashboard/components/MetricCard'
 import { formatDateTime, formatPercent } from '@/lib/format'
-import type { LecturerAssignmentAnalytics } from '@/types/domain'
+import type {
+  AssignmentRosterRow,
+  AssignmentRosterStatus,
+  AssignmentRosterSubmissionStatus,
+  LecturerAssignmentAnalytics,
+} from '@/types/domain'
+
+const ROSTER_PAGE_SIZE = 50
+
+type RosterTab = AssignmentRosterStatus
+type RosterSort = 'score' | 'name' | 'submittedAt'
 
 interface AssignmentStudentsPanelProps {
-  analytics: LecturerAssignmentAnalytics | undefined
-  isLoading?: boolean
-  error?: unknown
+  assignmentId: string
+  summary?: Pick<LecturerAssignmentAnalytics, 'enrolled' | 'submitted' | 'completionRate'>
+}
+
+function RosterStatusBadge({ status }: { status: AssignmentRosterSubmissionStatus }) {
+  const label = getRosterStatusLabel(status)
+
+  if (isCompletedStatus(status)) {
+    return (
+      <Badge
+        variant="secondary"
+        className="border-emerald-200 bg-emerald-50 font-medium text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300"
+      >
+        {label}
+      </Badge>
+    )
+  }
+
+  if (status === 'IN_PROGRESS') {
+    return (
+      <Badge
+        variant="secondary"
+        className="border-sky-200 bg-sky-50 font-medium text-sky-600 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300"
+      >
+        {label}
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge
+      variant="secondary"
+      className="border-amber-200 bg-amber-50 font-medium text-amber-600 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+    >
+      {label}
+    </Badge>
+  )
+}
+
+function SortableHeader({
+  label,
+  active,
+  direction,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  direction: RosterSort
+  onClick: () => void
+}) {
+  return (
+    <TableHead>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+        onClick={onClick}
+      >
+        {label}
+        {active ? (
+          direction === 'score' || direction === 'submittedAt' ? (
+            <ArrowDown className="size-3.5" />
+          ) : (
+            <ArrowUp className="size-3.5" />
+          )
+        ) : (
+          <ArrowUpDown className="size-3.5 opacity-50" />
+        )}
+      </button>
+    </TableHead>
+  )
 }
 
 function StudentTable({
   rows,
   showRank = false,
   showScore = false,
+  sort,
+  onSortChange,
 }: {
-  rows: StudentRankingRow[]
+  rows: AssignmentRosterRow[]
   showRank?: boolean
   showScore?: boolean
+  sort: RosterSort
+  onSortChange: (sort: RosterSort) => void
 }) {
   if (rows.length === 0) {
     return null
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {showRank ? <TableHead className="w-16">Rank</TableHead> : null}
-            <TableHead>Student</TableHead>
-            {showScore ? <TableHead>Score</TableHead> : null}
-            <TableHead>Status</TableHead>
-            <TableHead>Submitted</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.studentId}>
-              {showRank ? (
-                <TableCell className="tabular-nums text-muted-foreground">
-                  {row.rank ?? '—'}
-                </TableCell>
-              ) : null}
-              <TableCell className="font-medium">{formatStudentLabel(row)}</TableCell>
+    <div className="overflow-hidden rounded-lg border">
+      <div className="max-h-[480px] overflow-auto">
+        <Table>
+          <TableHeader className="sticky top-0 z-10 bg-card">
+            <TableRow>
+              {showRank ? <TableHead className="w-16">Rank</TableHead> : null}
+              <SortableHeader
+                label="Student"
+                active={sort === 'name'}
+                direction={sort}
+                onClick={() => onSortChange('name')}
+              />
               {showScore ? (
-                <TableCell className="tabular-nums">
-                  {row.score ?? '—'} / {row.maxScore ?? '—'}
-                </TableCell>
+                <SortableHeader
+                  label="Score"
+                  active={sort === 'score'}
+                  direction={sort}
+                  onClick={() => onSortChange('score')}
+                />
               ) : null}
-              <TableCell>
-                <SubmissionBadge submittedAt={row.submittedAt} status={row.status} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDateTime(row.submittedAt)}
-              </TableCell>
+              <TableHead>Status</TableHead>
+              <SortableHeader
+                label="Submitted"
+                active={sort === 'submittedAt'}
+                direction={sort}
+                onClick={() => onSortChange('submittedAt')}
+              />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.studentId} className="h-12">
+                {showRank ? (
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {row.rank ?? '—'}
+                  </TableCell>
+                ) : null}
+                <TableCell className="font-medium">{formatStudentLabel(row)}</TableCell>
+                {showScore ? (
+                  <TableCell className="tabular-nums">
+                    {row.score ?? '—'} / {row.maxScore ?? '—'}
+                  </TableCell>
+                ) : null}
+                <TableCell>
+                  <RosterStatusBadge status={row.status} />
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDateTime(row.submittedAt)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
-  )
-}
-
-function SubmissionBadge({
-  submittedAt,
-  status,
-}: {
-  submittedAt: string | null
-  status?: string | null
-}) {
-  const isCompleted =
-    status?.toUpperCase() === 'SUBMITTED' ||
-    status?.toUpperCase() === 'AUTO_SUBMITTED' ||
-    Boolean(submittedAt)
-
-  return (
-    <Badge
-      variant="secondary"
-      className={
-        isCompleted
-          ? 'border-emerald-200 bg-emerald-50 font-medium text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
-          : 'border-amber-200 bg-amber-50 font-medium text-amber-600 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300'
-      }
-    >
-      {isCompleted ? 'Completed' : 'Pending'}
-    </Badge>
   )
 }
 
@@ -120,22 +198,54 @@ function PanelEmpty({
 }
 
 export function AssignmentStudentsPanel({
-  analytics,
-  isLoading,
+  assignmentId,
+  summary,
 }: AssignmentStudentsPanelProps) {
-  const rankings = useMemo(
-    () => (analytics?.rankings ?? []) as StudentRankingRow[],
-    [analytics?.rankings],
-  )
-  const { completed, pending } = useMemo(() => partitionStudents(rankings), [rankings])
-  const pendingCount = analytics ? getPendingCount(analytics, rankings) : 0
-  const hasRosterGap = pendingCount > 0 && pending.length === 0
+  const [activeTab, setActiveTab] = useState<RosterTab>('completed')
+  const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<RosterSort>('score')
+  const [search, setSearch] = useState('')
 
-  if (isLoading) {
+  const summaryQuery = useAssignmentRoster(assignmentId, {
+    status: 'all',
+    page: 1,
+    limit: 1,
+  })
+
+  const rosterQuery = useAssignmentRoster(assignmentId, {
+    status: activeTab,
+    page,
+    limit: ROSTER_PAGE_SIZE,
+    sort,
+  })
+
+  const headerStats = summary ?? summaryQuery.data
+  const pendingCount = headerStats
+    ? Math.max(headerStats.enrolled - headerStats.submitted, 0)
+    : 0
+  const pagination = rosterQuery.data?.pagination
+  const totalPages = pagination ? Math.ceil(pagination.total / pagination.limit) : 1
+
+  const rankings = useMemo(() => {
+    const rows = rosterQuery.data?.rankings ?? []
+    const query = search.trim().toLowerCase()
+    if (!query) return rows
+
+    return rows.filter((row) => {
+      const label = formatStudentLabel(row).toLowerCase()
+      return label.includes(query) || row.email.toLowerCase().includes(query)
+    })
+  }, [rosterQuery.data?.rankings, search])
+
+  if (summaryQuery.isLoading && !summary) {
     return <Skeleton className="h-64 w-full" />
   }
 
-  if (!analytics) {
+  if (rosterQuery.error) {
+    return <QueryError error={rosterQuery.error} onRetry={() => rosterQuery.refetch()} />
+  }
+
+  if (!headerStats) {
     return (
       <PanelEmpty
         title="Student data unavailable"
@@ -147,81 +257,126 @@ export function AssignmentStudentsPanel({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Enrolled
-          </p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums">{analytics.enrolled}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Completed
-          </p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums">{analytics.submitted}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Pending
-          </p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums">{pendingCount}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {formatPercent(analytics.completionRate)} completion rate
-          </p>
-        </div>
+        <MetricCard label="Enrolled" value={headerStats.enrolled} />
+        <MetricCard label="Completed" value={headerStats.submitted} />
+        <MetricCard
+          label="Pending"
+          value={pendingCount}
+          description={`${formatPercent(headerStats.completionRate)} completion rate`}
+        />
       </div>
 
-      <Tabs defaultValue="completed">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value as RosterTab)
+          setPage(1)
+          setSort(value === 'completed' ? 'score' : 'name')
+        }}
+      >
         <TabsList>
-          <TabsTrigger value="completed">
-            Completed ({completed.length || analytics.submitted})
-          </TabsTrigger>
+          <TabsTrigger value="completed">Completed ({headerStats.submitted})</TabsTrigger>
           <TabsTrigger value="pending">Pending ({pendingCount})</TabsTrigger>
-          <TabsTrigger value="all">All ({analytics.enrolled})</TabsTrigger>
+          <TabsTrigger value="all">All ({headerStats.enrolled})</TabsTrigger>
         </TabsList>
+      </Tabs>
 
-        <TabsContent value="completed" className="mt-4 space-y-4">
-          {completed.length > 0 ? (
-            <StudentTable rows={completed} showRank showScore />
-          ) : analytics.submitted > 0 ? (
-            <PanelEmpty
-              title="Submitted students not listed"
-              description="The API returned submission counts but no student roster. Ask the backend to include all enrolled students in the rankings response."
+      {(headerStats.enrolled > 10 || rankings.length > 10) && (
+        <div className="relative max-w-md">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search students…"
+            className="pl-9"
+            aria-label="Search students"
+          />
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {rosterQuery.isLoading ? (
+          <Skeleton className="h-48 w-full" />
+        ) : activeTab === 'completed' ? (
+          rankings.length > 0 ? (
+            <StudentTable
+              rows={rankings}
+              showRank
+              showScore
+              sort={sort}
+              onSortChange={(value) => {
+                setSort(value)
+                setPage(1)
+              }}
             />
           ) : (
             <PanelEmpty
               title="No submissions yet"
               description="Students will appear here once they submit this assignment."
             />
-          )}
-        </TabsContent>
-
-        <TabsContent value="pending" className="mt-4 space-y-4">
-          {pending.length > 0 ? (
-            <StudentTable rows={pending} />
-          ) : hasRosterGap ? (
-            <PanelEmpty
-              title={`${pendingCount} student${pendingCount === 1 ? '' : 's'} pending`}
-              description="Pending students are counted but not listed individually. The backend should return all enrolled students in rankings with null submittedAt for those who have not submitted."
+          )
+        ) : activeTab === 'pending' ? (
+          rankings.length > 0 ? (
+            <StudentTable
+              rows={rankings}
+              sort={sort}
+              onSortChange={(value) => {
+                setSort(value)
+                setPage(1)
+              }}
             />
           ) : (
             <PanelEmpty
               title="Everyone has submitted"
               description="All enrolled students have completed this assignment."
             />
-          )}
-        </TabsContent>
+          )
+        ) : rankings.length > 0 ? (
+          <StudentTable
+            rows={rankings}
+            showRank
+            showScore
+            sort={sort}
+            onSortChange={(value) => {
+              setSort(value)
+              setPage(1)
+            }}
+          />
+        ) : (
+          <PanelEmpty
+            title="No student roster"
+            description="Student details will appear when enrolled students are available."
+          />
+        )}
+      </div>
 
-        <TabsContent value="all" className="mt-4 space-y-4">
-          {rankings.length > 0 ? (
-            <StudentTable rows={rankings} showRank showScore />
-          ) : (
-            <PanelEmpty
-              title="No student roster"
-              description="Student details will appear when the backend returns enrolled students for this assignment."
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+      {pagination && totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Page {pagination.page} of {totalPages} · {pagination.total} students
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || rosterQuery.isFetching}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || rosterQuery.isFetching}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

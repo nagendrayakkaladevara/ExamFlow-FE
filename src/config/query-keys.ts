@@ -26,6 +26,30 @@ export const queryKeys = {
     list: (params?: Record<string, unknown>) => ['assignments', 'list', params] as const,
   },
   analytics: {
+    all: ['analytics'] as const,
+    studentMe: (params?: object) =>
+      ['analytics', 'student', 'me', params] as const,
+    studentByTag: (params?: object) =>
+      ['analytics', 'student', 'by-tag', params] as const,
+    lecturerSummary: (params?: object) =>
+      ['analytics', 'lecturer', 'summary', params] as const,
+    lecturerClass: (classId: string, params?: object) =>
+      ['analytics', 'lecturer', 'class', classId, params] as const,
+    lecturerAssignment: (assignmentId: string, params?: object) =>
+      ['analytics', 'lecturer', 'assignment', assignmentId, params] as const,
+    lecturerAssignmentQuestions: (assignmentId: string) =>
+      ['analytics', 'lecturer', 'assignment', assignmentId, 'questions'] as const,
+    adminOverview: (params?: object) =>
+      ['analytics', 'admin', 'overview', params] as const,
+    adminClass: (classId: string, params?: object) =>
+      ['analytics', 'admin', 'class', classId, params] as const,
+    adminActivity: (params?: object) =>
+      ['analytics', 'admin', 'activity', params] as const,
+    adminTrends: (params: object) =>
+      ['analytics', 'admin', 'trends', params] as const,
+    adminAlerts: (params?: object) =>
+      ['analytics', 'admin', 'alerts', params] as const,
+    /** @deprecated Use specific analytics keys instead */
     dashboard: (scope?: string) => ['analytics', 'dashboard', scope] as const,
   },
   circulars: {

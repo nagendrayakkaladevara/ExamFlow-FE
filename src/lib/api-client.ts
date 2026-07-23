@@ -17,6 +17,7 @@ interface RequestOptions {
   signal?: AbortSignal
   skipAuth?: boolean
   skipRefresh?: boolean
+  method?: HttpMethod
 }
 
 function buildUrl(path: string, params?: RequestOptions['params']): string {
@@ -63,21 +64,22 @@ export interface PaginatedResult<T> {
   meta?: Record<string, unknown>
 }
 
-async function request<T>(
-  method: HttpMethod,
+async function fetchWithAuth(
   path: string,
-  options: RequestOptions = {},
-): Promise<T> {
+  options: RequestOptions & { skipRefresh?: boolean } = {},
+): Promise<Response> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
-
   const signal = options.signal ?? controller.signal
 
   try {
     const { accessToken } = useAuthStore.getState()
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...getCsrfHeaders(),
+    }
+
+    if (options.body !== undefined) {
+      headers['Content-Type'] = 'application/json'
     }
 
     if (!options.skipAuth && accessToken) {
@@ -85,7 +87,7 @@ async function request<T>(
     }
 
     const response = await fetch(buildUrl(path, options.params), {
-      method,
+      method: options.method ?? 'GET',
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       credentials: options.credentials ?? 'include',
@@ -95,7 +97,7 @@ async function request<T>(
     if (response.status === 401 && !options.skipAuth && !options.skipRefresh) {
       const newToken = await refreshAccessToken()
       if (newToken) {
-        return request<T>(method, path, { ...options, skipRefresh: true })
+        return fetchWithAuth(path, { ...options, skipRefresh: true })
       }
       throw new ApiError(401, {
         code: 'UNAUTHORIZED',
@@ -103,10 +105,19 @@ async function request<T>(
       })
     }
 
-    return parseResponse<T>(response)
+    return response
   } finally {
     clearTimeout(timeoutId)
   }
+}
+
+async function request<T>(
+  method: HttpMethod,
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const response = await fetchWithAuth(path, { ...options, method, signal: options.signal })
+  return parseResponse<T>(response)
 }
 
 async function requestPaginated<T>(
@@ -114,51 +125,42 @@ async function requestPaginated<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<PaginatedResult<T>> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
-  const signal = options.signal ?? controller.signal
-
-  try {
-    const { accessToken } = useAuthStore.getState()
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...getCsrfHeaders(),
-    }
-
-    if (!options.skipAuth && accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`
-    }
-
-    const response = await fetch(buildUrl(path, options.params), {
-      method,
-      headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-      credentials: options.credentials ?? 'include',
-      signal,
+  const response = await fetchWithAuth(path, { ...options, method })
+  const payload = await parseJsonResponse<T[]>(response)
+  if (!payload.success) {
+    throw new ApiError(response.status, {
+      code: 'UNKNOWN_ERROR',
+      message: 'Request failed.',
     })
+  }
+  return { data: payload.data, meta: payload.meta }
+}
 
-    if (response.status === 401 && !options.skipAuth && !options.skipRefresh) {
-      const newToken = await refreshAccessToken()
-      if (newToken) {
-        return requestPaginated<T>(method, path, { ...options, skipRefresh: true })
+async function downloadBlob(
+  path: string,
+  options: Omit<RequestOptions, 'body'> = {},
+): Promise<Blob> {
+  const response = await fetchWithAuth(path, { ...options, method: 'GET' })
+  if (!response.ok) {
+    let message = 'Download failed.'
+    try {
+      const payload = (await response.json()) as ApiResponse<unknown>
+      if (!payload.success) {
+        throw new ApiError(response.status, payload.error)
       }
-      throw new ApiError(401, {
-        code: 'UNAUTHORIZED',
-        message: 'Session expired.',
-      })
-    }
-
-    const payload = await parseJsonResponse<T[]>(response)
-    if (!payload.success) {
+    } catch (error) {
+      if (error instanceof ApiError) throw error
       throw new ApiError(response.status, {
         code: 'UNKNOWN_ERROR',
-        message: 'Request failed.',
+        message,
       })
     }
-    return { data: payload.data, meta: payload.meta }
-  } finally {
-    clearTimeout(timeoutId)
+    throw new ApiError(response.status, {
+      code: 'UNKNOWN_ERROR',
+      message,
+    })
   }
+  return response.blob()
 }
 
 export const api = {
@@ -174,6 +176,8 @@ export const api = {
     request<T>('PATCH', path, { ...options, body }),
   delete: <T>(path: string, options?: Omit<RequestOptions, 'body'>) =>
     request<T>('DELETE', path, options),
+  downloadBlob: (path: string, options?: Omit<RequestOptions, 'body'>) =>
+    downloadBlob(path, options),
 }
 
 export function getRoleHomePath(role: string): string {

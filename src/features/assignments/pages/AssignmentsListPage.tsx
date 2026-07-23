@@ -37,7 +37,7 @@ export function AssignmentsListPage() {
   })
 
   const studentAnalyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard('assignments-list'),
+    queryKey: queryKeys.analytics.studentMe({ scope: 'assignments-list' }),
     queryFn: () => analyticsApi.studentMe(),
     enabled: isStudent,
   })

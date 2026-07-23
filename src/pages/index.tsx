@@ -19,5 +19,6 @@ export { CircularDetailPage } from '@/features/circulars/pages/CircularDetailPag
 export { PollsListPage as PollsPage } from '@/features/polls/pages/PollsListPage'
 export { PollFormPage } from '@/features/polls/pages/PollFormPage'
 export { PollDetailPage } from '@/features/polls/pages/PollDetailPage'
+export { AssignmentResultsPage } from '@/features/assignments/pages/AssignmentResultsPage'
 export { AnalyticsPage } from '@/features/analytics/pages/AnalyticsPages'
 export { RoleDashboardPage } from '@/features/dashboard/pages/RoleDashboardPage'

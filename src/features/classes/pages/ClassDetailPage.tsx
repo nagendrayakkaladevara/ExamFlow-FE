@@ -18,6 +18,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import {
   ClassLecturersPanel,
@@ -26,9 +34,10 @@ import {
 import { classesApi } from '@/features/classes/api'
 import { assignmentsApi } from '@/features/assignments/api'
 import { analyticsApi } from '@/features/analytics/api'
+import { ClassAnalyticsGrid } from '@/features/analytics/components/ClassAnalyticsGrid'
 import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
-import { formatDate, formatDateTime, formatPercent } from '@/lib/format'
+import { formatDateTime, formatPercent } from '@/lib/format'
 import { isApiError } from '@/lib/errors'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
@@ -165,9 +174,15 @@ export function ClassDetailPage() {
   const { classData, isLoading, error, refetch } = useClassData(id, isAdmin)
 
   const analyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard(`class-${id}`),
+    queryKey: queryKeys.analytics.lecturerClass(id),
     queryFn: () => analyticsApi.lecturerClass(id),
     enabled: Boolean(id) && isLecturer,
+  })
+
+  const adminAnalyticsQuery = useQuery({
+    queryKey: queryKeys.analytics.adminClass(id),
+    queryFn: () => analyticsApi.adminClass(id),
+    enabled: Boolean(id) && isAdmin,
   })
 
   const assignmentsQuery = useQuery({
@@ -237,43 +252,77 @@ export function ClassDetailPage() {
         ) : null}
       </div>
 
-      {isLecturer ? (
+      {isLecturer ? <ClassAnalyticsGrid data={analytics} isLoading={analyticsQuery.isLoading} /> : null}
+
+      {isAdmin && adminAnalyticsQuery.data ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              label="Students"
+              value={adminAnalyticsQuery.data.studentCount}
+            />
+            <MetricCard
+              label="Assignments"
+              value={adminAnalyticsQuery.data.assignmentCount}
+            />
+            <MetricCard
+              label="Completion"
+              value={formatPercent(adminAnalyticsQuery.data.completionRate)}
+            />
+            <MetricCard
+              label="Average score"
+              value={
+                adminAnalyticsQuery.data.averageScore != null
+                  ? `${adminAnalyticsQuery.data.averageScore}%`
+                  : '—'
+              }
+            />
+          </div>
+
+          {adminAnalyticsQuery.data.assignments.length > 0 ? (
+            <section className="rounded-lg border bg-card">
+              <div className="border-b px-6 py-4">
+                <h2 className="text-base font-semibold">Assignment performance</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Assignment</TableHead>
+                      <TableHead>Enrolled</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead>Completion</TableHead>
+                      <TableHead>Average score</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adminAnalyticsQuery.data.assignments.map((assignment) => (
+                      <TableRow key={assignment.assignmentId}>
+                        <TableCell className="font-medium">{assignment.title}</TableCell>
+                        <TableCell className="tabular-nums">{assignment.enrolled}</TableCell>
+                        <TableCell className="tabular-nums">{assignment.submitted}</TableCell>
+                        <TableCell className="tabular-nums">
+                          {formatPercent(assignment.completionRate)}
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          {assignment.averageScore != null
+                            ? `${assignment.averageScore}%`
+                            : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      ) : isAdmin && adminAnalyticsQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {analyticsQuery.isLoading ? (
-            <>
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-            </>
-          ) : (
-            <>
-              <MetricCard
-                label="Students"
-                value={analytics?.studentCount ?? '—'}
-                description="Enrolled in this class"
-              />
-              <MetricCard
-                label="Assignments"
-                value={analytics?.assignmentCount ?? '—'}
-                description="Created for this class"
-              />
-              <MetricCard
-                label="Submissions"
-                value={analytics?.completedSubmissions ?? '—'}
-                description={
-                  analytics
-                    ? `${formatPercent(analytics.completionRate)} completion rate`
-                    : undefined
-                }
-              />
-              <MetricCard
-                label="Updated"
-                value={formatDate(classData.updatedAt)}
-                description={`Created ${formatDate(classData.createdAt)}`}
-              />
-            </>
-          )}
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
         </div>
       ) : null}
 
@@ -368,7 +417,9 @@ export function ClassDetailPage() {
                       </div>
                       {isLecturer ? (
                         <Button variant="outline" size="sm" asChild>
-                          <Link to={`/lecturer/assignments/${assignment.id}`}>View</Link>
+                          <Link to={`/lecturer/assignments/${assignment.id}/results`}>
+                            Results
+                          </Link>
                         </Button>
                       ) : null}
                     </div>

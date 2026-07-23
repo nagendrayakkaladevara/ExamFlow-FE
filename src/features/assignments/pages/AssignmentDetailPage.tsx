@@ -11,6 +11,7 @@ import { AssignmentQuestionsPanel } from '@/features/assignments/components/Assi
 import { AssignmentStudentsPanel } from '@/features/assignments/components/AssignmentStudentsPanel'
 import { assignmentsApi } from '@/features/assignments/api'
 import { analyticsApi } from '@/features/analytics/api'
+import { AssignmentExportButton } from '@/features/analytics/components/ExportCsvButton'
 import { AssignmentTimingBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
 import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
 import {
@@ -93,9 +94,24 @@ export function AssignmentDetailPage() {
     enabled: Boolean(id),
   })
 
-  const analyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard(`assignment-${id}`),
-    queryFn: () => analyticsApi.lecturerAssignment(id),
+  const summaryQuery = useQuery({
+    queryKey: queryKeys.analytics.lecturerAssignment(id, { status: 'all', limit: 1 }),
+    queryFn: () => analyticsApi.lecturerAssignment(id, { status: 'all', limit: 1 }),
+    enabled: Boolean(id) && isLecturer,
+  })
+
+  const topSubmissionsQuery = useQuery({
+    queryKey: queryKeys.analytics.lecturerAssignment(id, {
+      status: 'completed',
+      sort: 'score',
+      limit: 5,
+    }),
+    queryFn: () =>
+      analyticsApi.lecturerAssignment(id, {
+        status: 'completed',
+        sort: 'score',
+        limit: 5,
+      }),
     enabled: Boolean(id) && isLecturer,
   })
 
@@ -113,12 +129,14 @@ export function AssignmentDetailPage() {
 
   const timingStatus = getAssignmentTimingStatus(assignment)
   const totalMarks = getTotalMarks(assignment.questions)
-  const analytics = analyticsQuery.data
+  const analytics = summaryQuery.data
+  const topSubmissions = topSubmissionsQuery.data?.rankings ?? []
   const assignmentStarted = Date.now() >= new Date(assignment.startAt).getTime()
 
   const handleRefresh = () => {
     void query.refetch()
-    void analyticsQuery.refetch()
+    void summaryQuery.refetch()
+    void topSubmissionsQuery.refetch()
   }
 
   return (
@@ -146,9 +164,15 @@ export function AssignmentDetailPage() {
                 <Link to={`/lecturer/assignments/${id}/edit`}>Edit</Link>
               </Button>
             )}
+            <AssignmentExportButton assignmentId={id} title={assignment.title} />
+            <Button variant="outline" asChild>
+              <Link to={`/lecturer/assignments/${id}/results`}>View results</Link>
+            </Button>
             <RefreshButton
               onClick={handleRefresh}
-              isRefreshing={query.isFetching || analyticsQuery.isFetching}
+              isRefreshing={
+                query.isFetching || summaryQuery.isFetching || topSubmissionsQuery.isFetching
+              }
             />
             <Button variant="outline" asChild>
               <Link to="/lecturer/assignments">Back to assignments</Link>
@@ -167,7 +191,7 @@ export function AssignmentDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {analyticsQuery.isLoading ? (
+        {summaryQuery.isLoading ? (
           <>
             <MetricCardSkeleton />
             <MetricCardSkeleton />
@@ -258,13 +282,13 @@ export function AssignmentDetailPage() {
                   </p>
                 </div>
               </div>
-              {analytics.rankings.length > 0 ? (
+              {topSubmissions.length > 0 ? (
                 <div className="mt-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Top submissions
                   </p>
                   <ul className="divide-y rounded-lg border">
-                    {analytics.rankings.slice(0, 5).map((row) => (
+                    {topSubmissions.map((row) => (
                       <li
                         key={row.studentId}
                         className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
@@ -282,12 +306,12 @@ export function AssignmentDetailPage() {
                 </div>
               ) : null}
             </section>
-          ) : analyticsQuery.isLoading ? (
+          ) : summaryQuery.isLoading ? (
             <Skeleton className="h-32 w-full" />
-          ) : analyticsQuery.error ? (
+          ) : summaryQuery.error ? (
             <QueryError
-              error={analyticsQuery.error}
-              onRetry={() => analyticsQuery.refetch()}
+              error={summaryQuery.error}
+              onRetry={() => summaryQuery.refetch()}
               title="Unable to load analytics"
             />
           ) : null}
@@ -298,18 +322,18 @@ export function AssignmentDetailPage() {
         </TabsContent>
 
         <TabsContent value="students">
-          {analyticsQuery.error ? (
-            <QueryError
-              error={analyticsQuery.error}
-              onRetry={() => analyticsQuery.refetch()}
-              title="Unable to load student data"
-            />
-          ) : (
-            <AssignmentStudentsPanel
-              analytics={analytics}
-              isLoading={analyticsQuery.isLoading}
-            />
-          )}
+          <AssignmentStudentsPanel
+            assignmentId={id}
+            summary={
+              analytics
+                ? {
+                    enrolled: analytics.enrolled,
+                    submitted: analytics.submitted,
+                    completionRate: analytics.completionRate,
+                  }
+                : undefined
+            }
+          />
         </TabsContent>
       </Tabs>
     </div>

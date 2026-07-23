@@ -27,14 +27,12 @@ import {
 import { analyticsApi } from '@/features/analytics/api'
 import { assignmentsApi } from '@/features/assignments/api'
 import { circularsApi } from '@/features/circulars/api'
-import { formatCircularFeedMeta, hasCircularEdits } from '@/features/circulars/circular-meta'
+import { formatCircularFeedMeta } from '@/features/circulars/circular-meta'
 import { pollsApi } from '@/features/polls/api'
 import { queryKeys } from '@/config/query-keys'
-import { formatDateTime } from '@/lib/format'
+import { formatDateTime, formatPercent } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
-import { useClassOptions } from '@/hooks/useClassOptions'
 import { getRoleBasePath } from '@/config/navigation'
-import type { AssignmentRecord, CircularRecord } from '@/types/domain'
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">{children}</div>
@@ -44,13 +42,13 @@ function AdminDashboard() {
   const basePath = getRoleBasePath('ADMIN')
 
   const overviewQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard('admin-home'),
+    queryKey: queryKeys.analytics.adminOverview(),
     queryFn: () => analyticsApi.adminOverview(),
   })
 
-  const assignmentsQuery = useQuery({
-    queryKey: queryKeys.assignments.list({ scope: 'dashboard-admin' }),
-    queryFn: () => assignmentsApi.list(),
+  const activityQuery = useQuery({
+    queryKey: queryKeys.analytics.adminActivity({ limit: 10 }),
+    queryFn: () => analyticsApi.adminActivity({ limit: 10 }),
   })
 
   const circularsQuery = useQuery({
@@ -61,12 +59,7 @@ function AdminDashboard() {
     },
   })
 
-  const recentAssignments = (assignmentsQuery.data ?? [])
-    .slice()
-    .sort((a, b) => parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime())
-    .slice(0, 5)
-
-  const activityItems = buildActivityFeed(recentAssignments, circularsQuery.data ?? [])
+  const activityItems = activityQuery.data?.items ?? []
 
   if (overviewQuery.error) {
     return <QueryError error={overviewQuery.error} onRetry={() => overviewQuery.refetch()} />
@@ -115,24 +108,30 @@ function AdminDashboard() {
             description="Latest publishes and announcements"
             viewAllHref={`${basePath}/analytics`}
           >
-            {assignmentsQuery.isLoading || circularsQuery.isLoading ? (
+            {activityQuery.isLoading ? (
               <ActivitySkeleton />
             ) : activityItems.length > 0 ? (
               activityItems.map((item) => (
                 <DashboardListItem
                   key={item.id}
-                  title={item.title}
-                  meta={item.meta}
-                  href={item.href}
+                  title={item.resourceLabel}
+                  meta={
+                    item.actorName
+                      ? `${item.type.replaceAll('_', ' ').toLowerCase()} · ${item.actorName}`
+                      : item.type.replaceAll('_', ' ').toLowerCase()
+                  }
+                  href={`${basePath}/analytics`}
                   trailing={
-                    <span className="text-xs text-muted-foreground">{item.timestamp}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatActivityTimestamp(item.occurredAt)}
+                    </span>
                   }
                 />
               ))
             ) : (
               <PanelEmptyState
                 title="No recent activity"
-                description="New assignments and circulars will appear here."
+                description="Platform events will appear here."
               />
             )}
           </DashboardPanel>
@@ -173,13 +172,10 @@ function AdminDashboard() {
 
 function LecturerDashboard() {
   const basePath = getRoleBasePath('LECTURER')
-  const { classes } = useClassOptions()
-  const firstClass = classes[0]
 
-  const classAnalyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard(`class-${firstClass?.id}`),
-    queryFn: () => analyticsApi.lecturerClass(firstClass!.id),
-    enabled: Boolean(firstClass?.id),
+  const summaryQuery = useQuery({
+    queryKey: queryKeys.analytics.lecturerSummary(),
+    queryFn: () => analyticsApi.lecturerSummary(),
   })
 
   const assignmentsQuery = useQuery({
@@ -210,39 +206,39 @@ function LecturerDashboard() {
 
   return (
     <>
-      {firstClass ? (
+      {summaryQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {classAnalyticsQuery.isLoading ? (
-            <>
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-            </>
-          ) : classAnalyticsQuery.data ? (
-            <>
-              <MetricCard
-                label="Students"
-                value={classAnalyticsQuery.data.studentCount}
-                description={firstClass.name}
-              />
-              <MetricCard
-                label="Assignments"
-                value={classAnalyticsQuery.data.assignmentCount}
-                description="In this class"
-              />
-              <MetricCard
-                label="Submissions"
-                value={classAnalyticsQuery.data.completedSubmissions}
-                description="Completed"
-              />
-              <MetricCard
-                label="Completion rate"
-                value={`${Math.round(classAnalyticsQuery.data.completionRate * 100)}%`}
-                description="Class average"
-              />
-            </>
-          ) : null}
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+        </div>
+      ) : summaryQuery.data ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Unique students"
+            value={summaryQuery.data.totals.uniqueStudentCount}
+            description={`Across ${summaryQuery.data.totals.classCount} classes`}
+          />
+          <MetricCard
+            label="Assignments"
+            value={summaryQuery.data.totals.assignmentCount}
+            description="Published assessments"
+          />
+          <MetricCard
+            label="Submissions"
+            value={summaryQuery.data.totals.completedSubmissions}
+            description="Completed"
+          />
+          <MetricCard
+            label="Completion rate"
+            value={formatPercent(summaryQuery.data.totals.completionRate)}
+            description={
+              summaryQuery.data.totals.averageScore != null
+                ? `Avg score ${summaryQuery.data.totals.averageScore}%`
+                : undefined
+            }
+          />
         </div>
       ) : (
         <div className="rounded-lg border bg-card p-6">
@@ -344,7 +340,7 @@ function StudentDashboard() {
   const basePath = getRoleBasePath('STUDENT')
 
   const analyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard('student-home'),
+    queryKey: queryKeys.analytics.studentMe(),
     queryFn: () => analyticsApi.studentMe(),
   })
 
@@ -390,7 +386,7 @@ function StudentDashboard() {
               label="Average score"
               value={
                 analyticsQuery.data.averageScore != null
-                  ? analyticsQuery.data.averageScore.toFixed(1)
+                  ? `${analyticsQuery.data.averageScore.toFixed(1)}%`
                   : '—'
               }
               description="Across all submissions"
@@ -572,42 +568,4 @@ function PanelEmptyState({
       />
     </div>
   )
-}
-
-interface ActivityItem {
-  id: string
-  title: string
-  meta: string
-  timestamp: string
-  sortAt: string
-  href: string
-}
-
-function buildActivityFeed(
-  assignments: AssignmentRecord[],
-  circulars: CircularRecord[],
-): ActivityItem[] {
-  const assignmentItems: ActivityItem[] = assignments.map((assignment) => ({
-    id: `assignment-${assignment.id}`,
-    title: assignment.title,
-    meta: assignment.isPublished ? 'Assignment published' : 'Assignment draft',
-    timestamp: formatActivityTimestamp(assignment.createdAt),
-    sortAt: assignment.createdAt,
-    href: '/admin/analytics',
-  }))
-
-  const circularItems: ActivityItem[] = circulars.map((circular) => ({
-    id: `circular-${circular.id}`,
-    title: circular.title,
-    meta: hasCircularEdits(circular) ? 'Circular updated' : 'Circular published',
-    timestamp: formatActivityTimestamp(
-      hasCircularEdits(circular) ? circular.lastEditedAt! : circular.publishAt,
-    ),
-    sortAt: hasCircularEdits(circular) ? circular.lastEditedAt! : circular.publishAt,
-    href: `/admin/circulars/${circular.id}`,
-  }))
-
-  return [...assignmentItems, ...circularItems]
-    .sort((a, b) => parseISO(b.sortAt).getTime() - parseISO(a.sortAt).getTime())
-    .slice(0, 6)
 }
