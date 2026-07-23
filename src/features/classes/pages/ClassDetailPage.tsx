@@ -165,7 +165,7 @@ export function ClassDetailPage() {
   const { classData, isLoading, error, refetch } = useClassData(id, isAdmin)
 
   const analyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard(`class-${id}`),
+    queryKey: queryKeys.analytics.lecturerClass(id),
     queryFn: () => analyticsApi.lecturerClass(id),
     enabled: Boolean(id) && isLecturer,
   })

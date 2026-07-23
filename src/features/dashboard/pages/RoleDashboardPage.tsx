@@ -44,7 +44,7 @@ function AdminDashboard() {
   const basePath = getRoleBasePath('ADMIN')
 
   const overviewQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard('admin-home'),
+    queryKey: queryKeys.analytics.adminOverview(),
     queryFn: () => analyticsApi.adminOverview(),
   })
 
@@ -177,7 +177,7 @@ function LecturerDashboard() {
   const firstClass = classes[0]
 
   const classAnalyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard(`class-${firstClass?.id}`),
+    queryKey: queryKeys.analytics.lecturerClass(firstClass!.id),
     queryFn: () => analyticsApi.lecturerClass(firstClass!.id),
     enabled: Boolean(firstClass?.id),
   })
@@ -344,7 +344,7 @@ function StudentDashboard() {
   const basePath = getRoleBasePath('STUDENT')
 
   const analyticsQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard('student-home'),
+    queryKey: queryKeys.analytics.studentMe(),
     queryFn: () => analyticsApi.studentMe(),
   })
 
@@ -390,7 +390,7 @@ function StudentDashboard() {
               label="Average score"
               value={
                 analyticsQuery.data.averageScore != null
-                  ? analyticsQuery.data.averageScore.toFixed(1)
+                  ? `${analyticsQuery.data.averageScore.toFixed(1)}%`
                   : '—'
               }
               description="Across all submissions"

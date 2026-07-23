@@ -36,7 +36,7 @@ export function AnalyticsPage() {
 
 function StudentAnalyticsPage() {
   const query = useQuery({
-    queryKey: queryKeys.analytics.dashboard('student'),
+    queryKey: queryKeys.analytics.studentMe(),
     queryFn: () => analyticsApi.studentMe(),
   })
 
@@ -54,7 +54,11 @@ function StudentAnalyticsPage() {
         <StatCard title="Total attempts" value={query.data.totalAttempts} />
         <StatCard
           title="Average score"
-          value={query.data.averageScore != null ? query.data.averageScore.toFixed(1) : '—'}
+          value={
+            query.data.averageScore != null
+              ? `${query.data.averageScore.toFixed(1)}%`
+              : '—'
+          }
         />
       </div>
 
@@ -132,7 +136,7 @@ function StudentAnalyticsPage() {
 
 function AdminAnalyticsPage() {
   const query = useQuery({
-    queryKey: queryKeys.analytics.dashboard('admin'),
+    queryKey: queryKeys.analytics.adminOverview(),
     queryFn: () => analyticsApi.adminOverview(),
   })
 
@@ -167,7 +171,7 @@ function LecturerAnalyticsPage() {
   const activeClassId = selectedClassId || classes[0]?.id || ''
 
   const classQuery = useQuery({
-    queryKey: queryKeys.analytics.dashboard(`class-${activeClassId}`),
+    queryKey: queryKeys.analytics.lecturerClass(activeClassId),
     queryFn: () => analyticsApi.lecturerClass(activeClassId),
     enabled: Boolean(activeClassId),
   })

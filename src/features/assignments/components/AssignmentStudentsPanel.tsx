@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
-import { EmptyState } from '@/components/feedback/EmptyState'
+import { useState } from 'react'
+import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -10,20 +11,63 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAssignmentRoster } from '@/features/analytics/hooks/useAssignmentRoster'
+import { formatStudentLabel } from '@/features/analytics/utils/student-label'
 import {
-  formatStudentLabel,
-  getPendingCount,
-  partitionStudents,
-  type StudentRankingRow,
-} from '@/features/assignments/utils'
+  getRosterStatusLabel,
+  isCompletedStatus,
+} from '@/features/analytics/utils/roster-status'
 import { formatDateTime, formatPercent } from '@/lib/format'
-import type { LecturerAssignmentAnalytics } from '@/types/domain'
+import type {
+  AssignmentRosterRow,
+  AssignmentRosterStatus,
+  AssignmentRosterSubmissionStatus,
+  LecturerAssignmentAnalytics,
+} from '@/types/domain'
+
+const ROSTER_PAGE_SIZE = 50
+
+type RosterTab = AssignmentRosterStatus
 
 interface AssignmentStudentsPanelProps {
-  analytics: LecturerAssignmentAnalytics | undefined
-  isLoading?: boolean
-  error?: unknown
+  assignmentId: string
+  summary?: Pick<LecturerAssignmentAnalytics, 'enrolled' | 'submitted' | 'completionRate'>
+}
+
+function RosterStatusBadge({ status }: { status: AssignmentRosterSubmissionStatus }) {
+  const label = getRosterStatusLabel(status)
+
+  if (isCompletedStatus(status)) {
+    return (
+      <Badge
+        variant="secondary"
+        className="border-emerald-200 bg-emerald-50 font-medium text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300"
+      >
+        {label}
+      </Badge>
+    )
+  }
+
+  if (status === 'IN_PROGRESS') {
+    return (
+      <Badge
+        variant="secondary"
+        className="border-sky-200 bg-sky-50 font-medium text-sky-600 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300"
+      >
+        {label}
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge
+      variant="secondary"
+      className="border-amber-200 bg-amber-50 font-medium text-amber-600 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+    >
+      {label}
+    </Badge>
+  )
 }
 
 function StudentTable({
@@ -31,7 +75,7 @@ function StudentTable({
   showRank = false,
   showScore = false,
 }: {
-  rows: StudentRankingRow[]
+  rows: AssignmentRosterRow[]
   showRank?: boolean
   showScore?: boolean
 }) {
@@ -66,7 +110,7 @@ function StudentTable({
                 </TableCell>
               ) : null}
               <TableCell>
-                <SubmissionBadge submittedAt={row.submittedAt} status={row.status} />
+                <RosterStatusBadge status={row.status} />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDateTime(row.submittedAt)}
@@ -76,32 +120,6 @@ function StudentTable({
         </TableBody>
       </Table>
     </div>
-  )
-}
-
-function SubmissionBadge({
-  submittedAt,
-  status,
-}: {
-  submittedAt: string | null
-  status?: string | null
-}) {
-  const isCompleted =
-    status?.toUpperCase() === 'SUBMITTED' ||
-    status?.toUpperCase() === 'AUTO_SUBMITTED' ||
-    Boolean(submittedAt)
-
-  return (
-    <Badge
-      variant="secondary"
-      className={
-        isCompleted
-          ? 'border-emerald-200 bg-emerald-50 font-medium text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
-          : 'border-amber-200 bg-amber-50 font-medium text-amber-600 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300'
-      }
-    >
-      {isCompleted ? 'Completed' : 'Pending'}
-    </Badge>
   )
 }
 
@@ -120,22 +138,44 @@ function PanelEmpty({
 }
 
 export function AssignmentStudentsPanel({
-  analytics,
-  isLoading,
+  assignmentId,
+  summary,
 }: AssignmentStudentsPanelProps) {
-  const rankings = useMemo(
-    () => (analytics?.rankings ?? []) as StudentRankingRow[],
-    [analytics?.rankings],
-  )
-  const { completed, pending } = useMemo(() => partitionStudents(rankings), [rankings])
-  const pendingCount = analytics ? getPendingCount(analytics, rankings) : 0
-  const hasRosterGap = pendingCount > 0 && pending.length === 0
+  const [activeTab, setActiveTab] = useState<RosterTab>('completed')
+  const [page, setPage] = useState(1)
 
-  if (isLoading) {
+  const summaryQuery = useAssignmentRoster(assignmentId, {
+    status: 'all',
+    page: 1,
+    limit: 1,
+  })
+
+  const rosterQuery = useAssignmentRoster(assignmentId, {
+    status: activeTab,
+    page,
+    limit: ROSTER_PAGE_SIZE,
+    sort: activeTab === 'completed' ? 'score' : 'name',
+  })
+
+  const headerStats = summary ?? summaryQuery.data
+  const pendingCount = headerStats
+    ? Math.max(headerStats.enrolled - headerStats.submitted, 0)
+    : 0
+  const pagination = rosterQuery.data?.pagination
+  const totalPages = pagination ? Math.ceil(pagination.total / pagination.limit) : 1
+  const rankings = rosterQuery.data?.rankings ?? []
+
+  if (summaryQuery.isLoading && !summary) {
     return <Skeleton className="h-64 w-full" />
   }
 
-  if (!analytics) {
+  if (rosterQuery.error) {
+    return (
+      <QueryError error={rosterQuery.error} onRetry={() => rosterQuery.refetch()} />
+    )
+  }
+
+  if (!headerStats) {
     return (
       <PanelEmpty
         title="Student data unavailable"
@@ -151,13 +191,13 @@ export function AssignmentStudentsPanel({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Enrolled
           </p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums">{analytics.enrolled}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums">{headerStats.enrolled}</p>
         </div>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Completed
           </p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums">{analytics.submitted}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums">{headerStats.submitted}</p>
         </div>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -165,63 +205,85 @@ export function AssignmentStudentsPanel({
           </p>
           <p className="mt-2 text-2xl font-semibold tabular-nums">{pendingCount}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {formatPercent(analytics.completionRate)} completion rate
+            {formatPercent(headerStats.completionRate)} completion rate
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue="completed">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value as RosterTab)
+          setPage(1)
+        }}
+      >
         <TabsList>
           <TabsTrigger value="completed">
-            Completed ({completed.length || analytics.submitted})
+            Completed ({headerStats.submitted})
           </TabsTrigger>
           <TabsTrigger value="pending">Pending ({pendingCount})</TabsTrigger>
-          <TabsTrigger value="all">All ({analytics.enrolled})</TabsTrigger>
+          <TabsTrigger value="all">All ({headerStats.enrolled})</TabsTrigger>
         </TabsList>
+      </Tabs>
 
-        <TabsContent value="completed" className="mt-4 space-y-4">
-          {completed.length > 0 ? (
-            <StudentTable rows={completed} showRank showScore />
-          ) : analytics.submitted > 0 ? (
-            <PanelEmpty
-              title="Submitted students not listed"
-              description="The API returned submission counts but no student roster. Ask the backend to include all enrolled students in the rankings response."
-            />
+      <div className="space-y-4">
+        {rosterQuery.isLoading ? (
+          <Skeleton className="h-48 w-full" />
+        ) : activeTab === 'completed' ? (
+          rankings.length > 0 ? (
+            <StudentTable rows={rankings} showRank showScore />
           ) : (
             <PanelEmpty
               title="No submissions yet"
               description="Students will appear here once they submit this assignment."
             />
-          )}
-        </TabsContent>
-
-        <TabsContent value="pending" className="mt-4 space-y-4">
-          {pending.length > 0 ? (
-            <StudentTable rows={pending} />
-          ) : hasRosterGap ? (
-            <PanelEmpty
-              title={`${pendingCount} student${pendingCount === 1 ? '' : 's'} pending`}
-              description="Pending students are counted but not listed individually. The backend should return all enrolled students in rankings with null submittedAt for those who have not submitted."
-            />
+          )
+        ) : activeTab === 'pending' ? (
+          rankings.length > 0 ? (
+            <StudentTable rows={rankings} />
           ) : (
             <PanelEmpty
               title="Everyone has submitted"
               description="All enrolled students have completed this assignment."
             />
-          )}
-        </TabsContent>
+          )
+        ) : rankings.length > 0 ? (
+          <StudentTable rows={rankings} showRank showScore />
+        ) : (
+          <PanelEmpty
+            title="No student roster"
+            description="Student details will appear when enrolled students are available."
+          />
+        )}
+      </div>
 
-        <TabsContent value="all" className="mt-4 space-y-4">
-          {rankings.length > 0 ? (
-            <StudentTable rows={rankings} showRank showScore />
-          ) : (
-            <PanelEmpty
-              title="No student roster"
-              description="Student details will appear when the backend returns enrolled students for this assignment."
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+      {pagination && totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Page {pagination.page} of {totalPages} · {pagination.total} students
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || rosterQuery.isFetching}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || rosterQuery.isFetching}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -211,6 +211,38 @@ export interface PollResults {
   options: { optionId: string; optionText: string; votes: number }[]
 }
 
+export interface AnalyticsDateParams {
+  from?: string
+  to?: string
+}
+
+export type AssignmentRosterStatus = 'all' | 'completed' | 'pending'
+
+export interface AssignmentRosterParams extends AnalyticsDateParams {
+  status?: AssignmentRosterStatus
+  sort?: 'score' | 'name' | 'submittedAt'
+  page?: number
+  limit?: number
+}
+
+export type AssignmentRosterSubmissionStatus =
+  | null
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'AUTO_SUBMITTED'
+
+export interface AssignmentRosterRow {
+  rank: number | null
+  studentId: string
+  firstName: string
+  lastName: string
+  email: string
+  status: AssignmentRosterSubmissionStatus
+  score: number | null
+  maxScore: number | null
+  submittedAt: string | null
+}
+
 export interface StudentAnalytics {
   totalAttempts: number
   averageScore: number | null
@@ -223,12 +255,55 @@ export interface StudentAnalytics {
     incorrectCount: number | null
     percentage: number | null
     submittedAt: string | null
-    status: string
+    status: 'SUBMITTED' | 'AUTO_SUBMITTED'
   }[]
   trend: {
     submittedAt: string
-    percentage: number | null
+    percentage: number
   }[]
+}
+
+export interface StudentTagAnalytics {
+  byTag: {
+    tagId: string
+    tagName: string
+    attemptCount: number
+    correctCount: number
+    correctRate: number | null
+  }[]
+  weakTopics: {
+    tagId: string
+    tagName: string
+    attemptCount: number
+    correctCount: number
+    correctRate: number | null
+  }[]
+}
+
+export interface LecturerSummary {
+  classes: {
+    classId: string
+    className: string
+    studentCount: number
+    assignmentCount: number
+    completedSubmissions: number
+    completionRate: number
+    passed: number
+    failed: number
+    highestScore: number | null
+    lowestScore: number | null
+    averageScore: number | null
+  }[]
+  totals: {
+    classCount: number
+    uniqueStudentCount: number
+    assignmentCount: number
+    completedSubmissions: number
+    completionRate: number
+    passed: number
+    failed: number
+    averageScore: number | null
+  }
 }
 
 export interface LecturerClassAnalytics {
@@ -250,18 +325,31 @@ export interface LecturerAssignmentAnalytics {
   enrolled: number
   submitted: number
   completionRate: number
-  rankings: {
-    rank: number | null
-    studentId: string
-    studentName?: string | null
-    firstName?: string | null
-    lastName?: string | null
-    email?: string | null
-    status?: string | null
-    score: number | null
-    maxScore: number | null
-    submittedAt: string | null
+  rankings: AssignmentRosterRow[]
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+  }
+}
+
+export interface AssignmentQuestionAnalytics {
+  assignmentQuestionId: string
+  title: string
+  type: QuestionType
+  marks: number
+  sortOrder: number
+  attemptCount: number
+  correctCount: number
+  incorrectCount: number
+  skippedCount: number
+  correctRate: number | null
+  topWrongAnswers: {
+    optionText: string
+    count: number
+    percentage: number
   }[]
+  tags: { tagId: string; tagName: string }[]
 }
 
 export interface AdminOverview {
@@ -270,6 +358,59 @@ export interface AdminOverview {
   totalAssignments: number
   completedSubmissions: number
   averageCompletionRate: number
+}
+
+export interface AdminClassAnalytics {
+  classId: string
+  className: string
+  studentCount: number
+  assignmentCount: number
+  completionRate: number
+  averageScore: number | null
+  assignments: {
+    assignmentId: string
+    title: string
+    enrolled: number
+    submitted: number
+    completionRate: number
+    averageScore: number | null
+  }[]
+}
+
+export interface ActivityFeed {
+  items: {
+    id: string
+    type:
+      | 'ASSIGNMENT_PUBLISHED'
+      | 'USER_REGISTERED'
+      | 'CLASS_CREATED'
+      | 'SUBMISSION_COMPLETED'
+    actorName: string
+    resourceLabel: string
+    occurredAt: string
+  }[]
+  nextCursor: string | null
+}
+
+export interface AdminTrends {
+  metric: 'completion' | 'submissions' | 'averageScore'
+  interval: 'day' | 'week' | 'month'
+  from: string
+  to: string
+  points: {
+    periodStart: string
+    periodEnd: string
+    value: number
+  }[]
+}
+
+export interface AdminAlert {
+  classId: string
+  className: string
+  assignmentId: string
+  assignmentTitle: string
+  completionRate: number
+  threshold: number
 }
 
 export interface UploadResult {
