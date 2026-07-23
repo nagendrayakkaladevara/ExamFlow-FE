@@ -63,23 +63,23 @@ export const analyticsApi = {
     }),
 
   adminActivity: (params?: { limit?: number; cursor?: string }) =>
-    api.get<ActivityFeed>('/analytics/admin/activity', { params }),
+    api.get<ActivityFeed>('/analytics/admin/activity', { params: toQueryParams(params) }),
 
   adminTrends: (params: {
     metric: AdminTrends['metric']
     interval: AdminTrends['interval']
     from: string
     to: string
-  }) => api.get<AdminTrends>('/analytics/admin/trends', { params }),
+  }) => api.get<AdminTrends>('/analytics/admin/trends', { params: toQueryParams(params) }),
 
   adminAlerts: (params?: { threshold?: number }) =>
-    api.get<AdminAlert[]>('/analytics/admin/alerts', { params }),
+    api.get<AdminAlert[]>('/analytics/admin/alerts', { params: toQueryParams(params) }),
 
   exportAdminReport: (
     reportType: string,
     params?: Record<string, string | number | undefined>,
   ) =>
     api.downloadBlob(`/analytics/admin/reports/${reportType}/export`, {
-      params: { format: 'csv', ...params },
+      params: { format: 'csv', ...params } as QueryParams,
     }),
 }

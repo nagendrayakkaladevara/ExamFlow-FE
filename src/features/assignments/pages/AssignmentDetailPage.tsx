@@ -11,6 +11,7 @@ import { AssignmentQuestionsPanel } from '@/features/assignments/components/Assi
 import { AssignmentStudentsPanel } from '@/features/assignments/components/AssignmentStudentsPanel'
 import { assignmentsApi } from '@/features/assignments/api'
 import { analyticsApi } from '@/features/analytics/api'
+import { AssignmentExportButton } from '@/features/analytics/components/ExportCsvButton'
 import { AssignmentTimingBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
 import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
 import {
@@ -163,6 +164,10 @@ export function AssignmentDetailPage() {
                 <Link to={`/lecturer/assignments/${id}/edit`}>Edit</Link>
               </Button>
             )}
+            <AssignmentExportButton assignmentId={id} title={assignment.title} />
+            <Button variant="outline" asChild>
+              <Link to={`/lecturer/assignments/${id}/results`}>View results</Link>
+            </Button>
             <RefreshButton
               onClick={handleRefresh}
               isRefreshing={

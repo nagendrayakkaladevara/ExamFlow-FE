@@ -9,10 +9,7 @@ export function useAssignmentRoster(
   options?: { enabled?: boolean },
 ) {
   return useQuery({
-    queryKey: queryKeys.analytics.lecturerAssignment(
-      assignmentId,
-      params as Record<string, unknown>,
-    ),
+    queryKey: queryKeys.analytics.lecturerAssignment(assignmentId, params),
     queryFn: () => analyticsApi.lecturerAssignment(assignmentId, params),
     enabled: Boolean(assignmentId) && (options?.enabled ?? true),
   })
