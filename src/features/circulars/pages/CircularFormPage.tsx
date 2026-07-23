@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Loader2, X } from 'lucide-react'
@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,6 +19,11 @@ import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
 import { isApiError } from '@/lib/errors'
+import { cn } from '@/lib/utils'
+
+const formFooterClassName =
+  'flex w-full min-w-0 flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:px-6'
+const formFooterButtonClassName = 'min-h-11 w-full max-w-full sm:min-h-9 sm:w-auto'
 
 export function CircularFormPage() {
   const { id: editId } = useParams()
@@ -48,6 +53,18 @@ export function CircularFormPage() {
     setCoverImageUrl(circular.coverImageUrl)
     setCoverImageBlobKey(null)
   }, [circularQuery.data])
+
+  const hasChanges = useMemo(() => {
+    if (!isEdit || !circularQuery.data) return true
+    const circular = circularQuery.data
+    return (
+      title.trim() !== circular.title ||
+      description.trim() !== circular.description ||
+      publishAt !== toDatetimeLocalValue(circular.publishAt) ||
+      coverImageUrl !== circular.coverImageUrl ||
+      coverImageBlobKey !== null
+    )
+  }, [isEdit, circularQuery.data, title, description, publishAt, coverImageUrl, coverImageBlobKey])
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -174,12 +191,16 @@ export function CircularFormPage() {
           {!isEdit ? (
             <AudiencePicker role={role} value={audiences} onChange={setAudiences} />
           ) : null}
+        </CardContent>
+        <CardFooter className={cn(formFooterClassName, 'mt-2')}>
           <Button
             type="button"
+            className={formFooterButtonClassName}
             disabled={
               !title.trim() ||
               !description.trim() ||
               (!isEdit && audiences.length === 0) ||
+              (isEdit && !hasChanges) ||
               mutation.isPending ||
               uploadMutation.isPending
             }
@@ -187,7 +208,7 @@ export function CircularFormPage() {
           >
             {isEdit ? 'Save changes' : 'Publish circular'}
           </Button>
-        </CardContent>
+        </CardFooter>
       </Card>
     </div>
   )
