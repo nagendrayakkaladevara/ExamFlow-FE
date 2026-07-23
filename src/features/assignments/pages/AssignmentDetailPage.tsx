@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AssignmentQuestionsPanel } from '@/features/assignments/components/AssignmentQuestionsPanel'
@@ -16,8 +15,14 @@ import {
   formatAssignmentTimingMeta,
   getAssignmentTimingStatus,
 } from '@/features/dashboard/utils'
-import { getTotalMarks, formatStudentLabel, canViewResults, isSubmissionCompleted } from '@/features/assignments/utils'
+import {
+  getTotalMarks,
+  formatStudentLabel,
+  canViewResults,
+  isSubmissionCompleted,
+} from '@/features/assignments/utils'
 import type { AssignmentDetail } from '@/types/domain'
+import type { ResultPolicy } from '@/types/enums'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
@@ -37,6 +42,44 @@ function AssignmentDetailSkeleton() {
   )
 }
 
+function StudentAssignmentDetailSkeleton() {
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <Skeleton className="h-9 w-40" />
+      <div className="space-y-8 rounded-lg border p-6 md:p-8">
+        <div className="space-y-4 border-b pb-8">
+          <Skeleton className="h-5 w-16" />
+          <Skeleton className="h-9 w-4/5" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+        <div className="grid gap-6 sm:grid-cols-3">
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+        </div>
+        <Skeleton className="h-28" />
+        <Skeleton className="h-11 w-full sm:w-48" />
+      </div>
+    </div>
+  )
+}
+
+function formatResultPolicyLabel(
+  policy: ResultPolicy,
+  resultDeclareAt: string | null,
+): string {
+  if (policy === 'IMMEDIATE') {
+    return 'Available immediately after submission'
+  }
+  if (policy === 'AFTER_COMPLETION') {
+    return 'Available after the assignment closes'
+  }
+  return resultDeclareAt
+    ? `Available from ${formatDateTime(resultDeclareAt)}`
+    : 'Scheduled release'
+}
+
 export function AssignmentDetailPage() {
   const { id = '' } = useParams()
   const role = useAuthStore((s) => s.user?.role)
@@ -54,7 +97,9 @@ export function AssignmentDetailPage() {
     enabled: Boolean(id) && isLecturer,
   })
 
-  if (query.isLoading) return <AssignmentDetailSkeleton />
+  if (query.isLoading) {
+    return isLecturer ? <AssignmentDetailSkeleton /> : <StudentAssignmentDetailSkeleton />
+  }
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
   if (!query.data) return null
 
@@ -252,6 +297,8 @@ function StudentAssignmentDetail({
   id: string
 }) {
   const timingStatus = getAssignmentTimingStatus(assignment)
+  const totalMarks = getTotalMarks(assignment.questions)
+  const timingMeta = formatAssignmentTimingMeta(assignment)
 
   const attemptQuery = useQuery({
     queryKey: [...queryKeys.assignments.all, id, 'attempt'],
@@ -264,62 +311,138 @@ function StudentAssignmentDetail({
   const inProgress = attempt?.status === 'IN_PROGRESS'
   const submitted = attempt ? isSubmissionCompleted(attempt.status) : false
   const resultsAvailable = submitted && canViewResults(assignment)
+  const canStart = timingStatus === 'open' && !submitted
+
+  if (attemptQuery.isLoading) {
+    return <StudentAssignmentDetailSkeleton />
+  }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={assignment.title}
-        description={assignment.description ?? undefined}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link to="/student/assignments">Back</Link>
-            </Button>
-            {timingStatus === 'open' && !submitted ? (
-              <Button asChild>
-                <Link to={`/student/assignments/${id}/take`}>
-                  {inProgress ? 'Continue assignment' : 'Start assignment'}
-                </Link>
-              </Button>
-            ) : null}
-            {resultsAvailable ? (
-              <>
-                <Button variant="outline" asChild>
-                  <Link to={`/student/assignments/${id}/result`}>View result</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to={`/student/assignments/${id}/review`}>Review answers</Link>
-                </Button>
-              </>
-            ) : null}
-          </div>
-        }
-      />
+    <div className="mx-auto max-w-3xl space-y-6">
+      <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit text-muted-foreground">
+        <Link to="/student/assignments">Back to assignments</Link>
+      </Button>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <AssignmentTimingBadge status={timingStatus} />
-        {inProgress ? (
-          <span className="text-xs text-muted-foreground">Attempt in progress</span>
-        ) : null}
-        {submitted && !resultsAvailable ? (
-          <span className="text-xs text-muted-foreground">Submitted — results pending</span>
-        ) : null}
-      </div>
+      <article className="rounded-lg border bg-card">
+        <div className="space-y-8 p-6 md:p-8">
+          <header className="space-y-4 border-b pb-8">
+            <div className="flex flex-wrap items-center gap-2">
+              <AssignmentTimingBadge status={timingStatus} />
+              {inProgress ? (
+                <span className="text-xs text-muted-foreground">Attempt in progress</span>
+              ) : null}
+              {submitted && !resultsAvailable ? (
+                <span className="text-xs text-muted-foreground">Submitted — results pending</span>
+              ) : null}
+              {submitted && resultsAvailable ? (
+                <span className="text-xs text-emerald-600">Submitted</span>
+              ) : null}
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight">{assignment.title}</h1>
+            {assignment.description ? (
+              <p className="text-base leading-relaxed text-muted-foreground">
+                {assignment.description}
+              </p>
+            ) : null}
+            <p className="text-sm text-muted-foreground">{timingMeta}</p>
+          </header>
 
-      <Card>
-        <CardContent className="space-y-2 pt-6 text-sm">
-          <p>Opens: {formatDateTime(assignment.startAt)}</p>
-          <p>Closes: {formatDateTime(assignment.endAt)}</p>
-          <p>Duration: {assignment.durationMinutes} minutes</p>
-          <p>Questions: {assignment.questions.length}</p>
+          <section aria-label="Assignment overview">
+            <dl className="grid gap-6 sm:grid-cols-3">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Duration
+                </dt>
+                <dd className="mt-1 text-xl font-semibold tracking-tight">
+                  {assignment.durationMinutes} min
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Questions
+                </dt>
+                <dd className="mt-1 text-xl font-semibold tracking-tight">
+                  {assignment.questions.length}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Total marks
+                </dt>
+                <dd className="mt-1 text-xl font-semibold tracking-tight">{totalMarks}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section>
+            <h2 className="text-base font-semibold">Schedule</h2>
+            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Opens
+                </dt>
+                <dd className="mt-1 text-sm">{formatDateTime(assignment.startAt)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Closes
+                </dt>
+                <dd className="mt-1 text-sm">{formatDateTime(assignment.endAt)}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Results
+                </dt>
+                <dd className="mt-1 text-sm">
+                  {formatResultPolicyLabel(assignment.resultPolicy, assignment.resultDeclareAt)}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
           {timingStatus === 'upcoming' ? (
-            <p className="text-muted-foreground">This assignment is not open yet.</p>
+            <p className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              This assignment is not open yet. You can start once the window opens.
+            </p>
           ) : null}
+
           {timingStatus === 'closed' && !submitted ? (
-            <p className="text-muted-foreground">The assignment window has closed.</p>
+            <p className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              The assignment window has closed and can no longer be started.
+            </p>
           ) : null}
-        </CardContent>
-      </Card>
+
+          {canStart || resultsAvailable ? (
+            <footer className="space-y-4 border-t pt-8">
+              {canStart ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {inProgress
+                      ? 'Your attempt is in progress. Continue where you left off — your answers are saved automatically.'
+                      : `Once you start, you will have ${assignment.durationMinutes} minutes to complete this assignment.`}
+                  </p>
+                  <Button asChild className="w-full sm:w-auto">
+                    <Link to={`/student/assignments/${id}/take`}>
+                      {inProgress ? 'Continue assignment' : 'Start assignment'}
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
+
+              {resultsAvailable ? (
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button asChild className="w-full sm:w-auto">
+                    <Link to={`/student/assignments/${id}/result`}>View result</Link>
+                  </Button>
+                  <Button variant="outline" asChild className="w-full sm:w-auto">
+                    <Link to={`/student/assignments/${id}/review`}>Review answers</Link>
+                  </Button>
+                </div>
+              ) : null}
+            </footer>
+          ) : null}
+        </div>
+      </article>
     </div>
   )
 }
