@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
@@ -14,18 +15,52 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { assignmentsApi } from '@/features/assignments/api'
+import {
+  getAssignmentDisplayStatus,
+  sortAssignmentsByDisplayStatus,
+} from '@/features/assignments/utils'
+import { analyticsApi } from '@/features/analytics/api'
+import { AssignmentDisplayStatusBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
+import type { AssignmentRecord } from '@/types/domain'
 
 export function AssignmentsListPage() {
   const role = useAuthStore((s) => s.user?.role)
   const isLecturer = role === 'LECTURER'
+  const isStudent = role === 'STUDENT'
 
   const query = useQuery({
     queryKey: queryKeys.assignments.list({ role }),
     queryFn: () => assignmentsApi.list(),
   })
+
+  const studentAnalyticsQuery = useQuery({
+    queryKey: queryKeys.analytics.dashboard('assignments-list'),
+    queryFn: () => analyticsApi.studentMe(),
+    enabled: isStudent,
+  })
+
+  const submissionStatusByAssignmentId = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const item of studentAnalyticsQuery.data?.recent ?? []) {
+      map.set(item.assignmentId, item.status)
+    }
+    return map
+  }, [studentAnalyticsQuery.data])
+
+  const getStatus = (assignment: AssignmentRecord) =>
+    getAssignmentDisplayStatus(assignment, {
+      role: role ?? 'STUDENT',
+      submissionStatus: submissionStatusByAssignmentId.get(assignment.id) ?? null,
+    })
+
+  const assignments = useMemo(() => {
+    const items = query.data ?? []
+    if (!items.length) return items
+    return sortAssignmentsByDisplayStatus(items, getStatus)
+  }, [query.data, role, submissionStatusByAssignmentId])
 
   return (
     <div className="space-y-6">
@@ -62,12 +97,13 @@ export function AssignmentsListPage() {
         />
       ) : null}
 
-      {query.data && query.data.length > 0 ? (
+      {assignments.length > 0 ? (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Opens</TableHead>
                 <TableHead>Closes</TableHead>
                 <TableHead>Duration</TableHead>
@@ -75,9 +111,12 @@ export function AssignmentsListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {query.data.map((assignment) => (
+              {assignments.map((assignment) => (
                 <TableRow key={assignment.id}>
                   <TableCell className="font-medium">{assignment.title}</TableCell>
+                  <TableCell>
+                    <AssignmentDisplayStatusBadge status={getStatus(assignment)} />
+                  </TableCell>
                   <TableCell>{formatDateTime(assignment.startAt)}</TableCell>
                   <TableCell>{formatDateTime(assignment.endAt)}</TableCell>
                   <TableCell>{assignment.durationMinutes} min</TableCell>

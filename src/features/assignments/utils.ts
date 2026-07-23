@@ -1,6 +1,72 @@
+import { parseISO } from 'date-fns'
 import type { AssignmentQuestion, AssignmentRecord } from '@/types/domain'
 import type { LecturerAssignmentAnalytics } from '@/types/domain'
-import type { SubmissionStatus } from '@/types/enums'
+import type { SubmissionStatus, UserRole } from '@/types/enums'
+import { getAssignmentTimingStatus } from '@/features/dashboard/utils'
+
+export type AssignmentDisplayStatus =
+  | 'draft'
+  | 'upcoming'
+  | 'open'
+  | 'in_progress'
+  | 'submitted'
+  | 'auto_submitted'
+  | 'expired'
+
+export function getAssignmentDisplayStatus(
+  assignment: AssignmentRecord,
+  options: {
+    role: UserRole
+    submissionStatus?: SubmissionStatus | string | null
+  },
+): AssignmentDisplayStatus {
+  const { role, submissionStatus } = options
+  const timing = getAssignmentTimingStatus(assignment)
+
+  if (role === 'LECTURER' || role === 'ADMIN') {
+    if (!assignment.isPublished) return 'draft'
+    if (timing === 'upcoming') return 'upcoming'
+    if (timing === 'open') return 'open'
+    return 'expired'
+  }
+
+  const resolvedSubmissionStatus =
+    submissionStatus ?? assignment.mySubmission?.status ?? null
+
+  if (resolvedSubmissionStatus) {
+    const normalized = resolvedSubmissionStatus.toUpperCase()
+    if (normalized === 'SUBMITTED') return 'submitted'
+    if (normalized === 'AUTO_SUBMITTED') return 'auto_submitted'
+    if (normalized === 'IN_PROGRESS') {
+      return timing === 'closed' ? 'expired' : 'in_progress'
+    }
+  }
+
+  if (timing === 'upcoming') return 'upcoming'
+  if (timing === 'open') return 'open'
+  return 'expired'
+}
+
+export function sortAssignmentsByDisplayStatus(
+  assignments: AssignmentRecord[],
+  getStatus: (assignment: AssignmentRecord) => AssignmentDisplayStatus,
+): AssignmentRecord[] {
+  const priority: Record<AssignmentDisplayStatus, number> = {
+    open: 0,
+    in_progress: 1,
+    upcoming: 2,
+    submitted: 3,
+    auto_submitted: 3,
+    expired: 4,
+    draft: 5,
+  }
+
+  return [...assignments].sort((a, b) => {
+    const statusDiff = priority[getStatus(a)] - priority[getStatus(b)]
+    if (statusDiff !== 0) return statusDiff
+    return parseISO(a.endAt).getTime() - parseISO(b.endAt).getTime()
+  })
+}
 
 export function getAssignmentWindowMinutes(
   startAt: string,
