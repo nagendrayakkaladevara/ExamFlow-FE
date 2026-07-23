@@ -1245,12 +1245,16 @@ Base path: `/api/v1/circulars`
   publishAt: string;
   isPublished: boolean;
   createdAt: string;
+  lastEditedBy: { id: string; name: string } | null;
+  lastEditedAt: string | null;
   audiences: {
     targetType: "ALL_LECTURERS" | "ALL_STUDENTS" | "USER" | "CLASS";
     targetId: string | null;
   }[];
 }
 ```
+
+`lastEditedBy` and `lastEditedAt` are `null` until the circular is edited via `PATCH`. Scheduled auto-publish does not update these fields.
 
 ---
 

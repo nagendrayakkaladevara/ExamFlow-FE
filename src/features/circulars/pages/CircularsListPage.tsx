@@ -6,11 +6,12 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { circularsApi } from '@/features/circulars/api'
+import { CircularListMeta } from '@/features/circulars/circular-meta'
 import { queryKeys } from '@/config/query-keys'
 import { ACTIVE_PAGE_POLL_INTERVAL_MS } from '@/config/query-polling'
-import { formatDateTime } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
 import {
@@ -38,6 +39,7 @@ export function CircularsListPage() {
   const role = useAuthStore((s) => s.user?.role)
   const basePath = useRoleBasePath()
   const canCreate = role === 'ADMIN' || role === 'LECTURER'
+  const isAdmin = role === 'ADMIN'
   const reducedMotion = useReducedMotion()
 
   const query = useQuery({
@@ -115,10 +117,13 @@ export function CircularsListPage() {
                     to={`${basePath}/circulars/${circular.id}`}
                     className="block px-6 py-4 transition-colors hover:bg-muted/40"
                   >
+                    {isAdmin && !circular.isPublished ? (
+                      <Badge variant="outline" className="mb-2">
+                        Draft
+                      </Badge>
+                    ) : null}
                     <p className="text-sm font-medium">{circular.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Published {formatDateTime(circular.publishAt)}
-                    </p>
+                    <CircularListMeta circular={circular} />
                     {circular.description ? (
                       <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                         {circular.description}
