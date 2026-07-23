@@ -13,7 +13,8 @@ const statusConfig: Record<
   },
   open: {
     label: 'Open',
-    className: 'bg-emerald-50 text-emerald-600',
+    className:
+      'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300',
   },
   closed: {
     label: 'Closed',
@@ -40,19 +41,23 @@ const displayStatusConfig: Record<
   },
   upcoming: {
     label: 'Upcoming',
-    className: 'bg-sky-50 text-sky-700',
+    className:
+      'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
   },
   open: {
     label: 'Open',
-    className: 'bg-emerald-50 text-emerald-600',
+    className:
+      'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300',
   },
   in_progress: {
     label: 'In progress',
-    className: 'bg-amber-50 text-amber-700',
+    className:
+      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300',
   },
   submitted: {
     label: 'Submitted',
-    className: 'bg-emerald-50 text-emerald-600',
+    className:
+      'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300',
   },
   auto_submitted: {
     label: 'Auto-submitted',
@@ -60,7 +65,8 @@ const displayStatusConfig: Record<
   },
   expired: {
     label: 'Expired',
-    className: 'bg-rose-50 text-rose-700',
+    className:
+      'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
   },
 }
 
@@ -82,7 +88,9 @@ export function SubmissionStatusBadge({ status }: { status: string }) {
       variant="secondary"
       className={cn(
         'font-medium',
-        isSubmitted ? 'bg-emerald-50 text-emerald-600' : 'bg-muted text-muted-foreground',
+        isSubmitted
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
+          : 'bg-muted text-muted-foreground',
       )}
     >
       {status.replace(/_/g, ' ').toLowerCase()}
