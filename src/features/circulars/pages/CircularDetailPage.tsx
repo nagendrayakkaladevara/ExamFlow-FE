@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { QueryError } from '@/components/feedback/EmptyState'
+import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { ShareLinkButton } from '@/components/shared/ShareLinkButton'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import {
   scaleIn,
   staggerContainer,
 } from '@/lib/motion'
+import { isAccessDeniedError } from '@/lib/errors'
 
 function CircularDetailSkeleton() {
   return (
@@ -58,6 +59,14 @@ export function CircularDetailPage() {
   const panelTransition = motionTransition(reducedMotion ?? false, 0.3)
 
   if (query.isLoading) return <CircularDetailSkeleton />
+  if (query.error && isAccessDeniedError(query.error)) {
+    return (
+      <EmptyState
+        title="Page not found"
+        description="The page you are looking for does not exist."
+      />
+    )
+  }
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
   if (!query.data) return null
 

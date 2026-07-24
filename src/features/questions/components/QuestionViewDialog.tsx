@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { DifficultyBadge } from '@/features/questions/components/DifficultyBadge'
 import { questionsApi } from '@/features/questions/api'
@@ -67,7 +66,7 @@ export function QuestionViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(44rem,calc(100svh-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+      <DialogContent className="flex max-h-[min(44rem,calc(100svh-2rem))] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         <DialogHeader className="shrink-0 space-y-3 border-b px-4 py-5 text-left sm:px-6">
           <DialogTitle className="text-xl font-semibold leading-snug">
             {question?.title?.trim() || 'Question details'}
@@ -90,7 +89,7 @@ export function QuestionViewDialog({
           ) : null}
         </DialogHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
+        <div className="h-0 min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="space-y-8 px-4 py-6 sm:px-6">
             {questionQuery.isLoading ? (
               <div className="flex items-center justify-center py-16">
@@ -192,7 +191,7 @@ export function QuestionViewDialog({
               </>
             ) : null}
           </div>
-        </ScrollArea>
+        </div>
 
         {question ? (
           <DialogFooter className="shrink-0 border-t px-4 py-4 sm:px-6">

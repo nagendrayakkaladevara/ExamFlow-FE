@@ -48,3 +48,7 @@ export function getSafeErrorMessage(error: ApiErrorBody): string {
 export function isApiError(value: unknown): value is ApiError {
   return value instanceof ApiError
 }
+
+export function isAccessDeniedError(error: unknown): boolean {
+  return isApiError(error) && (error.status === 403 || error.status === 404)
+}
