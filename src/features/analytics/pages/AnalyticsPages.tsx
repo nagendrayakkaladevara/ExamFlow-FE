@@ -272,7 +272,7 @@ function LecturerAnalyticsPage() {
       ) : null}
 
       {classes.length > 0 ? (
-        <div className="w-full space-y-1 sm:max-w-sm">
+        <div className="grid w-full gap-2 sm:max-w-sm">
           <Label htmlFor="class-select">Class detail</Label>
           <Select value={activeClassId} onValueChange={handleClassChange}>
             <SelectTrigger id="class-select" className="w-full">
