@@ -28,10 +28,10 @@ export function DateRangeFilter({
 }: DateRangeFilterProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-      <div className="w-full max-w-xs space-y-1">
+      <div className="w-full space-y-1 sm:max-w-xs">
         <Label htmlFor="date-range-preset">Date range</Label>
         <Select value={preset} onValueChange={(value) => onPresetChange(value as DateRangePreset)}>
-          <SelectTrigger id="date-range-preset">
+          <SelectTrigger id="date-range-preset" className="w-full">
             <SelectValue placeholder="Select range" />
           </SelectTrigger>
           <SelectContent>
@@ -45,7 +45,7 @@ export function DateRangeFilter({
 
       {preset === 'custom' ? (
         <>
-          <div className="w-full max-w-xs space-y-1">
+          <div className="w-full space-y-1 sm:max-w-xs">
             <Label htmlFor="date-from">From</Label>
             <Input
               id="date-from"
@@ -54,7 +54,7 @@ export function DateRangeFilter({
               onChange={(event) => onCustomFromChange(event.target.value)}
             />
           </div>
-          <div className="w-full max-w-xs space-y-1">
+          <div className="w-full space-y-1 sm:max-w-xs">
             <Label htmlFor="date-to">To</Label>
             <Input
               id="date-to"
