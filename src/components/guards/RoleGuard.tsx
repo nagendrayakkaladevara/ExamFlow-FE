@@ -1,6 +1,7 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import type { UserRole } from '@/types/enums'
 import { useAuthStore } from '@/features/auth/store'
+import { NotFoundPage } from '@/pages/errors/NotFoundPage'
 
 interface RoleGuardProps {
   allowedRoles: UserRole[]
@@ -14,7 +15,7 @@ export function RoleGuard({ allowedRoles }: RoleGuardProps) {
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/forbidden" replace />
+    return <NotFoundPage />
   }
 
   return <Outlet />

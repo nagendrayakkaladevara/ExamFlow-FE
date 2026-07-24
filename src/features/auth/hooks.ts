@@ -11,7 +11,7 @@ import {
 } from '@/features/auth/refresh'
 import { useAuthStore } from '@/features/auth/store'
 import type { ChangePasswordFormValues, LoginFormValues } from '@/features/auth/schemas'
-import { getRoleHomePath, sanitizeReturnPath } from '@/lib/api-client'
+import { resolvePostLoginPath } from '@/lib/api-client'
 import { isApiError } from '@/lib/errors'
 import { queryKeys } from '@/config/query-keys'
 
@@ -67,8 +67,7 @@ export function useLoginMutation(returnPath?: string | null) {
     onSuccess: (data) => {
       setSession(data.accessToken, data.user, data.expiresIn)
       startTokenLifecycle(data.expiresIn)
-      const safeNext = sanitizeReturnPath(returnPath ?? null)
-      navigate(safeNext ?? getRoleHomePath(data.user.role))
+      navigate(resolvePostLoginPath(returnPath, data.user.role))
       toast.success('Welcome back!')
     },
     onError: (error) => {

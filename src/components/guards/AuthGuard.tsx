@@ -1,18 +1,20 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { getRoleHomePath } from '@/lib/api-client'
+import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom'
+import { resolvePostLoginPath } from '@/lib/api-client'
 import { selectIsAuthenticated, useAuthStore } from '@/features/auth/store'
 
 export function GuestGuard() {
   const isAuthenticated = useAuthStore(selectIsAuthenticated)
   const user = useAuthStore((s) => s.user)
   const isBootstrapped = useAuthStore((s) => s.isBootstrapped)
+  const [searchParams] = useSearchParams()
 
   if (!isBootstrapped) {
     return null
   }
 
   if (isAuthenticated && user) {
-    return <Navigate to={getRoleHomePath(user.role)} replace />
+    const destination = resolvePostLoginPath(searchParams.get('next'), user.role)
+    return <Navigate to={destination} replace />
   }
 
   return <Outlet />

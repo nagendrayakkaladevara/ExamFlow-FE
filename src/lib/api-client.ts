@@ -201,3 +201,10 @@ export function sanitizeReturnPath(next: string | null): string | null {
   }
   return next
 }
+
+export function resolvePostLoginPath(
+  next: string | null | undefined,
+  role: string,
+): string {
+  return sanitizeReturnPath(next ?? null) ?? getRoleHomePath(role)
+}
