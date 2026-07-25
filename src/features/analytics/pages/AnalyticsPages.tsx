@@ -566,13 +566,13 @@ function AdminAnalyticsPage() {
 
         <TabsContent value="trends" className="space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
-            <div className="w-full max-w-xs space-y-1">
+            <div className="grid w-full gap-2 sm:max-w-xs">
               <Label>Metric</Label>
               <Select
                 value={trendMetric}
                 onValueChange={(value) => setTrendMetric(value as AdminTrends['metric'])}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -582,13 +582,13 @@ function AdminAnalyticsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-full max-w-xs space-y-1">
+            <div className="grid w-full gap-2 sm:max-w-xs">
               <Label>Interval</Label>
               <Select
                 value={trendInterval}
                 onValueChange={(value) => setTrendInterval(value as AdminTrends['interval'])}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -616,10 +616,10 @@ function AdminAnalyticsPage() {
 
         <TabsContent value="reports" className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
-            <div className="space-y-1">
+            <div className="grid w-full gap-2">
               <Label>Report type</Label>
               <Select value={reportType} onValueChange={handleReportTypeChange}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -631,10 +631,10 @@ function AdminAnalyticsPage() {
             </div>
 
             {reportType === 'class-performance' || reportType === 'assignment-results' ? (
-              <div className="space-y-1">
+              <div className="grid w-full gap-2">
                 <Label>Class</Label>
                 <Select value={reportClassId} onValueChange={handleReportClassChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
@@ -650,10 +650,10 @@ function AdminAnalyticsPage() {
             ) : null}
 
             {reportType === 'assignment-results' && reportClassId ? (
-              <div className="space-y-1 sm:col-span-2">
+              <div className="grid w-full gap-2 sm:col-span-2">
                 <Label>Assignment</Label>
                 <Select value={reportAssignmentId} onValueChange={handleReportAssignmentChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select assignment" />
                   </SelectTrigger>
                   <SelectContent>
