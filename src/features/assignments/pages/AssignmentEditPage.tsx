@@ -26,6 +26,12 @@ import {
   getResultDeclareAtError,
   getStartAtNotInPastError,
 } from '@/features/assignments/utils'
+import { SelectedQuestionsMarks } from '@/features/assignments/components/SelectedQuestionsMarks'
+import {
+  getQuestionDisplayTitle,
+  syncSelectedQuestionMeta,
+  type SelectedQuestionMeta,
+} from '@/features/assignments/utils/questionSelection'
 import { questionsApi } from '@/features/questions/api'
 import { QuestionBankFilterBar } from '@/features/questions/components/QuestionBankFilterBar'
 import { QuestionViewDialog } from '@/features/questions/components/QuestionViewDialog'
@@ -43,48 +49,6 @@ const resultPolicyOptions: { value: ResultPolicy; label: string }[] = [
   { value: 'SCHEDULED', label: 'Scheduled date' },
 ]
 
-function SelectedQuestionsMarks({
-  selectedQuestions,
-  questions,
-  questionMarks,
-  onMarksChange,
-}: {
-  selectedQuestions: string[]
-  questions: { id: string; title: string; defaultMarks: number }[]
-  questionMarks: Record<string, number>
-  onMarksChange: (questionId: string, marks: number) => void
-}) {
-  if (selectedQuestions.length === 0) return null
-
-  return (
-    <Card>
-      <CardContent className="space-y-3 pt-6">
-        <p className="text-sm font-medium">Marks per question</p>
-        <div className="space-y-2">
-          {selectedQuestions.map((questionId, index) => {
-            const question = questions.find((q) => q.id === questionId)
-            return (
-              <div key={questionId} className="flex items-center gap-3 text-sm">
-                <span className="min-w-0 flex-1 truncate">
-                  {index + 1}. {question?.title ?? questionId}
-                </span>
-                <Input
-                  type="number"
-                  min={0.1}
-                  step={0.5}
-                  className="w-24"
-                  value={questionMarks[questionId] ?? question?.defaultMarks ?? 1}
-                  onChange={(e) => onMarksChange(questionId, Number(e.target.value))}
-                />
-              </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
 export function AssignmentEditPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
@@ -100,7 +64,7 @@ export function AssignmentEditPage() {
   const [durationMinutes, setDurationMinutes] = useState(60)
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
   const [resultDeclareAt, setResultDeclareAt] = useState('')
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestionMeta[]>([])
   const [questionMarks, setQuestionMarks] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search)
@@ -128,7 +92,13 @@ export function AssignmentEditPage() {
       assignment.resultDeclareAt ? toDatetimeLocalValue(assignment.resultDeclareAt) : '',
     )
     const sorted = [...assignment.questions].sort((a, b) => a.sortOrder - b.sortOrder)
-    setSelectedQuestions(sorted.map((q) => q.questionId))
+    setSelectedQuestions(
+      sorted.map((item) => ({
+        id: item.questionId,
+        title: getQuestionDisplayTitle(item.question),
+        defaultMarks: item.marks,
+      })),
+    )
     setQuestionMarks(
       Object.fromEntries(sorted.map((q) => [q.questionId, q.marks])),
     )
@@ -218,11 +188,11 @@ export function AssignmentEditPage() {
     setQuestionMarks((current) => ({ ...current, [questionId]: marks }))
   }
 
-  function handleSelectionChange(next: string[]) {
-    setSelectedQuestions(next)
+  function handleSelectionChange(nextIds: string[]) {
+    setSelectedQuestions((current) => syncSelectedQuestionMeta(nextIds, allQuestions, current))
     setQuestionMarks((current) => {
       const updated = { ...current }
-      for (const questionId of next) {
+      for (const questionId of nextIds) {
         if (updated[questionId] == null) {
           const question = allQuestions.find((q) => q.id === questionId)
           updated[questionId] = question?.defaultMarks ?? 1
@@ -253,10 +223,10 @@ export function AssignmentEditPage() {
       })
 
       await assignmentsApi.importQuestions(id, {
-        questions: selectedQuestions.map((questionId, index) => ({
-          questionId,
+        questions: selectedQuestions.map((question, index) => ({
+          questionId: question.id,
           sortOrder: index,
-          marks: questionMarks[questionId],
+          marks: questionMarks[question.id],
         })),
       })
     },
@@ -476,14 +446,13 @@ export function AssignmentEditPage() {
               loading={isLoadingQuestions}
               onView={handleViewQuestion}
               selectable
-              selectedIds={selectedQuestions}
+              selectedIds={selectedQuestions.map((question) => question.id)}
               onSelectionChange={handleSelectionChange}
             />
           ) : null}
 
           <SelectedQuestionsMarks
             selectedQuestions={selectedQuestions}
-            questions={allQuestions}
             questionMarks={questionMarks}
             onMarksChange={handleMarksChange}
           />
