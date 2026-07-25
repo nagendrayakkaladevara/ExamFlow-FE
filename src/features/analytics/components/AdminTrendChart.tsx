@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -7,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { format, parseISO } from 'date-fns'
+import { format, isValid, parseISO } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { chartTheme } from '@/features/analytics/components/chart-theme'
 import type { AdminTrends } from '@/types/domain'
@@ -28,12 +29,39 @@ function formatMetricLabel(metric: AdminTrends['metric']) {
   }
 }
 
+function formatPeriodLabel(periodStart: string) {
+  try {
+    const date = parseISO(periodStart)
+    return isValid(date) ? format(date, 'MMM d') : periodStart
+  } catch {
+    return periodStart
+  }
+}
+
 export function AdminTrendChart({ data }: AdminTrendChartProps) {
-  const chartData = data.points.map((point) => ({
-    label: format(parseISO(point.periodStart), 'MMM d'),
+  const [isChartReady, setIsChartReady] = useState(false)
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setIsChartReady(true))
+    return () => {
+      cancelAnimationFrame(frame)
+      setIsChartReady(false)
+    }
+  }, [data.metric, data.interval, data.from, data.to])
+
+  const chartData = (data.points ?? []).map((point) => ({
+    label: formatPeriodLabel(point.periodStart),
     value: data.metric === 'completion' ? point.value * 100 : point.value,
     periodStart: point.periodStart,
   }))
+
+  if (chartData.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+        No trend data for the selected metric, interval, and date range.
+      </p>
+    )
+  }
 
   return (
     <Card>
@@ -42,51 +70,55 @@ export function AdminTrendChart({ data }: AdminTrendChartProps) {
       </CardHeader>
       <CardContent>
         <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: chartTheme.axis, fontSize: 12 }}
-                axisLine={{ stroke: chartTheme.grid }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: chartTheme.axis, fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-                label={{
-                  value:
-                    data.metric === 'completion' || data.metric === 'averageScore'
-                      ? '%'
-                      : 'Count',
-                  angle: -90,
-                  position: 'insideLeft',
-                  fill: chartTheme.axis,
-                  fontSize: 12,
-                }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: chartTheme.tooltipBg,
-                  borderColor: chartTheme.tooltipBorder,
-                  color: chartTheme.tooltipText,
-                  borderRadius: '0.5rem',
-                }}
-                formatter={(value) => {
-                  const numeric = typeof value === 'number' ? value : Number(value ?? 0)
-                  const formatted =
-                    data.metric === 'completion'
-                      ? formatPercent(numeric / 100)
-                      : data.metric === 'averageScore'
-                        ? `${numeric.toFixed(1)}%`
-                        : numeric
-                  return [formatted, formatMetricLabel(data.metric)]
-                }}
-              />
-              <Bar dataKey="value" fill={chartTheme.primary} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {isChartReady ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: chartTheme.axis, fontSize: 12 }}
+                  axisLine={{ stroke: chartTheme.grid }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: chartTheme.axis, fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  label={{
+                    value:
+                      data.metric === 'completion' || data.metric === 'averageScore'
+                        ? '%'
+                        : 'Count',
+                    angle: -90,
+                    position: 'insideLeft',
+                    fill: chartTheme.axis,
+                    fontSize: 12,
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: chartTheme.tooltipBg,
+                    borderColor: chartTheme.tooltipBorder,
+                    color: chartTheme.tooltipText,
+                    borderRadius: '0.5rem',
+                  }}
+                  formatter={(value) => {
+                    const numeric = typeof value === 'number' ? value : Number(value ?? 0)
+                    const formatted =
+                      data.metric === 'completion'
+                        ? formatPercent(numeric / 100)
+                        : data.metric === 'averageScore'
+                          ? `${numeric.toFixed(1)}%`
+                          : numeric
+                    return [formatted, formatMetricLabel(data.metric)]
+                  }}
+                />
+                <Bar dataKey="value" fill={chartTheme.primary} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full animate-pulse rounded-md bg-muted/40" aria-hidden />
+          )}
         </div>
       </CardContent>
     </Card>
