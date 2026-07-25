@@ -83,6 +83,14 @@ export function getAssignmentWindowMinutes(
   return Math.floor((endMs - startMs) / 60_000)
 }
 
+export function getDescriptionRequiredError(description: string): string | null {
+  if (!description.trim()) {
+    return 'Description is required.'
+  }
+
+  return null
+}
+
 export function getStartAtNotInPastError(
   startAt: string,
   now: Date = new Date(),

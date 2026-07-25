@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
 import {
+  getDescriptionRequiredError,
   getDurationFitError,
   getEndAfterStartError,
   getResultDeclareAtError,
@@ -66,6 +67,12 @@ export function AssignmentCreatePage() {
   const debouncedSearch = useDebounce(search)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [viewQuestionId, setViewQuestionId] = useState<string | null>(null)
+  const [step1Attempted, setStep1Attempted] = useState(false)
+
+  const descriptionError = useMemo(
+    () => getDescriptionRequiredError(description),
+    [description],
+  )
 
   const startAtNotInPastError = useMemo(
     () => getStartAtNotInPastError(startAt),
@@ -90,10 +97,14 @@ export function AssignmentCreatePage() {
     [resultPolicy, endAt, resultDeclareAt],
   )
 
+  const visibleDescriptionError = step1Attempted ? descriptionError : null
+
   const isStep1Valid =
     Boolean(classId) &&
     Boolean(title.trim()) &&
+    Boolean(description.trim()) &&
     Boolean(endAt) &&
+    !descriptionError &&
     !startAtNotInPastError &&
     !endAfterStartError &&
     !durationFitError &&
@@ -169,7 +180,7 @@ export function AssignmentCreatePage() {
       const assignment = await assignmentsApi.create({
         classId,
         title,
-        description: description || null,
+        description: description.trim(),
         startAt: fromDatetimeLocalValue(startAt),
         endAt: fromDatetimeLocalValue(endAt),
         durationMinutes,
@@ -253,9 +264,13 @@ export function AssignmentCreatePage() {
               <Label>Description</Label>
               <Textarea
                 className="min-h-20"
+                aria-invalid={visibleDescriptionError ? true : undefined}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+              {visibleDescriptionError ? (
+                <p className="text-sm text-destructive">{visibleDescriptionError}</p>
+              ) : null}
             </div>
             <div className="space-y-1">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -335,8 +350,12 @@ export function AssignmentCreatePage() {
             ) : null}
             <Button
               type="button"
-              disabled={!isStep1Valid}
-              onClick={() => setStep(2)}
+              onClick={() => {
+                setStep1Attempted(true)
+                if (isStep1Valid) {
+                  setStep(2)
+                }
+              }}
             >
               Continue to questions
             </Button>
