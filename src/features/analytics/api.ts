@@ -21,6 +21,26 @@ function toQueryParams<T extends object>(params?: T): QueryParams | undefined {
   return params as QueryParams | undefined
 }
 
+function normalizeAdminTrends(data: AdminTrends): AdminTrends {
+  const raw = data as AdminTrends & {
+    data?: Array<Record<string, unknown>>
+    points?: Array<Record<string, unknown>>
+  }
+  const sourcePoints = (raw.points ?? raw.data ?? []) as Array<Record<string, unknown>>
+
+  return {
+    metric: raw.metric,
+    interval: raw.interval,
+    from: raw.from,
+    to: raw.to,
+    points: sourcePoints.map((point) => ({
+      periodStart: String(point.periodStart ?? point.period_start ?? ''),
+      periodEnd: String(point.periodEnd ?? point.period_end ?? ''),
+      value: Number(point.value ?? 0),
+    })),
+  }
+}
+
 export const analyticsApi = {
   studentMe: (params?: AnalyticsDateParams) =>
     api.get<StudentAnalytics>('/analytics/student/me', { params: toQueryParams(params) }),
@@ -65,12 +85,17 @@ export const analyticsApi = {
   adminActivity: (params?: { limit?: number; cursor?: string }) =>
     api.get<ActivityFeed>('/analytics/admin/activity', { params: toQueryParams(params) }),
 
-  adminTrends: (params: {
+  adminTrends: async (params: {
     metric: AdminTrends['metric']
     interval: AdminTrends['interval']
     from: string
     to: string
-  }) => api.get<AdminTrends>('/analytics/admin/trends', { params: toQueryParams(params) }),
+  }) => {
+    const data = await api.get<AdminTrends>('/analytics/admin/trends', {
+      params: toQueryParams(params),
+    })
+    return normalizeAdminTrends(data)
+  },
 
   adminAlerts: (params?: { threshold?: number }) =>
     api.get<AdminAlert[]>('/analytics/admin/alerts', { params: toQueryParams(params) }),

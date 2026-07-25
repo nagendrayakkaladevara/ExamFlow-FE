@@ -423,7 +423,11 @@ function AdminAnalyticsPage() {
         from: trendRange.from,
         to: trendRange.to,
       }),
+    enabled: activeTab === 'trends',
   })
+
+  const trendsLoading =
+    trendsQuery.isPending || (trendsQuery.isFetching && !trendsQuery.data)
 
   const alertsQuery = useQuery({
     queryKey: queryKeys.analytics.adminAlerts({ threshold: 0.5 }),
@@ -599,10 +603,15 @@ function AdminAnalyticsPage() {
               </Select>
             </div>
           </div>
-          {trendsQuery.isLoading ? (
+          {trendsLoading ? (
             <LoadingState minHeightClassName="min-h-72" />
+          ) : trendsQuery.isError ? (
+            <QueryError error={trendsQuery.error} onRetry={() => trendsQuery.refetch()} />
           ) : trendsQuery.data ? (
-            <AdminTrendChart data={trendsQuery.data} />
+            <AdminTrendChart
+              key={`${trendMetric}-${trendInterval}-${trendRange.from}-${trendRange.to}`}
+              data={trendsQuery.data}
+            />
           ) : null}
         </TabsContent>
 
