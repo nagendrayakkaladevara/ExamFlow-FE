@@ -1,0 +1,77 @@
+From b6e97bead91b89139fa055fa6feaf1b036803a1a Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 25 Jul 2026 11:22:43 +0000
+Subject: [PATCH] Fix admin trends SQL for submissions and average score
+ metrics
+
+Prisma parameterizes each date_trunc() call separately, so GROUP BY 1
+did not match the second truncated expression in period_end. Derive
+period buckets in a subquery and compute period_end from period_start.
+---
+ src/modules/analytics/analytics.service.ts | 42 +++++++++++++---------
+ 1 file changed, 25 insertions(+), 17 deletions(-)
+
+diff --git a/src/modules/analytics/analytics.service.ts b/src/modules/analytics/analytics.service.ts
+index 3538cc8..748be19 100644
+--- a/src/modules/analytics/analytics.service.ts
++++ b/src/modules/analytics/analytics.service.ts
+@@ -843,15 +843,18 @@ export async function getAdminTrends(
+       Array<{ period_start: Date; period_end: Date; value: bigint }>
+     >`
+       SELECT
+-        date_trunc(${trunc}, submitted_at) AS period_start,
+-        (date_trunc(${trunc}, submitted_at) + ('1 ' || ${trunc})::interval - interval '1 millisecond') AS period_end,
++        period_start,
++        (period_start + ('1 ' || ${trunc})::interval - interval '1 millisecond') AS period_end,
+         COUNT(*)::bigint AS value
+-      FROM submissions
+-      WHERE status IN ('SUBMITTED', 'AUTO_SUBMITTED')
+-        AND submitted_at >= ${from}
+-        AND submitted_at <= ${to}
+-      GROUP BY 1
+-      ORDER BY 1
++      FROM (
++        SELECT date_trunc(${trunc}, submitted_at) AS period_start
++        FROM submissions
++        WHERE status IN ('SUBMITTED', 'AUTO_SUBMITTED')
++          AND submitted_at >= ${from}
++          AND submitted_at <= ${to}
++      ) AS bucketed
++      GROUP BY period_start
++      ORDER BY period_start
+     `;
+ 
+     return {
+@@ -872,15 +875,20 @@ export async function getAdminTrends(
+       Array<{ period_start: Date; period_end: Date; value: number | null }>
+     >`
+       SELECT
+-        date_trunc(${trunc}, submitted_at) AS period_start,
+-        (date_trunc(${trunc}, submitted_at) + ('1 ' || ${trunc})::interval - interval '1 millisecond') AS period_end,
+-        AVG(CASE WHEN max_score > 0 THEN (score / max_score) * 100 ELSE NULL END) AS value
+-      FROM submissions
+-      WHERE status IN ('SUBMITTED', 'AUTO_SUBMITTED')
+-        AND submitted_at >= ${from}
+-        AND submitted_at <= ${to}
+-      GROUP BY 1
+-      ORDER BY 1
++        period_start,
++        (period_start + ('1 ' || ${trunc})::interval - interval '1 millisecond') AS period_end,
++        AVG(score_pct) AS value
++      FROM (
++        SELECT
++          date_trunc(${trunc}, submitted_at) AS period_start,
++          CASE WHEN max_score > 0 THEN (score / max_score) * 100 ELSE NULL END AS score_pct
++        FROM submissions
++        WHERE status IN ('SUBMITTED', 'AUTO_SUBMITTED')
++          AND submitted_at >= ${from}
++          AND submitted_at <= ${to}
++      ) AS bucketed
++      GROUP BY period_start
++      ORDER BY period_start
+     `;
+ 
+     return {
+-- 
+2.43.0
+
