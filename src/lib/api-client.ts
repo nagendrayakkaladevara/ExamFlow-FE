@@ -1,11 +1,10 @@
-import { env } from '@/lib/env'
+import { buildApiUrl } from '@/lib/api-base-url'
 import { getCsrfHeaders } from '@/lib/csrf'
 import { ApiError } from '@/lib/errors'
 import type { ApiResponse } from '@/types/api'
 import { useAuthStore } from '@/features/auth/store'
 import { refreshAccessToken } from '@/features/auth/refresh'
 
-const API_PREFIX = '/api/v1'
 const DEFAULT_TIMEOUT_MS = 30_000
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -21,15 +20,7 @@ interface RequestOptions {
 }
 
 function buildUrl(path: string, params?: RequestOptions['params']): string {
-  const url = new URL(`${env.VITE_API_BASE_URL}${API_PREFIX}${path}`)
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, String(value))
-      }
-    }
-  }
-  return url.toString()
+  return buildApiUrl(path, params)
 }
 
 async function parseJsonResponse<T>(response: Response): Promise<ApiResponse<T>> {

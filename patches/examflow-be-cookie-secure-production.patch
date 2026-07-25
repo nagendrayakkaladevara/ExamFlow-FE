@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 25 Jul 2026 12:20:00 +0000
+Subject: [PATCH] Default COOKIE_SECURE to true in production
+
+Cross-origin frontends need SameSite=None refresh cookies. When COOKIE_SECURE
+is false the API emits SameSite=Lax, which breaks credentialed refresh after
+a full page reload on custom domains.
+---
+ src/config/env.ts | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/config/env.ts b/src/config/env.ts
+index 1111111..2222222 100644
+--- a/src/config/env.ts
++++ b/src/config/env.ts
+@@ -33,12 +33,12 @@ const optionalEmail = z.preprocess(
+   z.string().email().optional(),
+ );
+ 
+-const boolFromString = z.preprocess(
++const cookieSecureFromString = z.preprocess(
+   emptyToUndefined,
+   z
+     .enum(['true', 'false'])
+-    .default('false')
++    .default(process.env.NODE_ENV === 'production' ? 'true' : 'false')
+     .transform((value) => value === 'true'),
+ );
+ 
+@@ -61,7 +61,7 @@ const envSchema = z.object({
+     emptyToUndefined,
+     z.string().min(1).default('7d').transform(stripQuotes),
+   ),
+-  COOKIE_SECURE: boolFromString,
++  COOKIE_SECURE: cookieSecureFromString,
+   COOKIE_DOMAIN: optionalString,
+   CRON_SECRET: z.string().min(32).default(DEV_CRON_SECRET),
+   BLOB_READ_WRITE_TOKEN: optionalString,

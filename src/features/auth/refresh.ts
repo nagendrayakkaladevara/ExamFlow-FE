@@ -1,4 +1,4 @@
-import { env } from '@/lib/env'
+import { buildApiUrl } from '@/lib/api-base-url'
 import { getCsrfHeaders } from '@/lib/csrf'
 import { ApiError } from '@/lib/errors'
 import type { ApiResponse } from '@/types/api'
@@ -9,13 +9,11 @@ import {
   scheduleProactiveRefresh,
 } from '@/features/auth/token'
 
-const API_PREFIX = '/api/v1'
-
 let refreshPromise: Promise<string | null> | null = null
 let onSessionExpired: (() => void) | null = null
 
 function buildRefreshUrl(): string {
-  return `${env.VITE_API_BASE_URL}${API_PREFIX}/auth/refresh`
+  return buildApiUrl('/auth/refresh')
 }
 
 export function registerSessionExpiredHandler(handler: () => void): void {
