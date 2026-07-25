@@ -25,6 +25,11 @@ import {
   getResultDeclareAtError,
   getStartAtNotInPastError,
 } from '@/features/assignments/utils'
+import { SelectedQuestionsMarks } from '@/features/assignments/components/SelectedQuestionsMarks'
+import {
+  syncSelectedQuestionMeta,
+  type SelectedQuestionMeta,
+} from '@/features/assignments/utils/questionSelection'
 import { questionsApi } from '@/features/questions/api'
 import { QuestionBankFilterBar } from '@/features/questions/components/QuestionBankFilterBar'
 import { QuestionViewDialog } from '@/features/questions/components/QuestionViewDialog'
@@ -55,7 +60,7 @@ export function AssignmentCreatePage() {
   const [durationMinutes, setDurationMinutes] = useState(60)
   const [resultPolicy, setResultPolicy] = useState<ResultPolicy>('IMMEDIATE')
   const [resultDeclareAt, setResultDeclareAt] = useState('')
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestionMeta[]>([])
   const [questionMarks, setQuestionMarks] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search)
@@ -129,11 +134,11 @@ export function AssignmentCreatePage() {
     setQuestionMarks((current) => ({ ...current, [questionId]: marks }))
   }
 
-  function handleSelectionChange(next: string[]) {
-    setSelectedQuestions(next)
+  function handleSelectionChange(nextIds: string[]) {
+    setSelectedQuestions((current) => syncSelectedQuestionMeta(nextIds, allQuestions, current))
     setQuestionMarks((current) => {
       const updated = { ...current }
-      for (const questionId of next) {
+      for (const questionId of nextIds) {
         if (updated[questionId] == null) {
           const question = allQuestions.find((q) => q.id === questionId)
           updated[questionId] = question?.defaultMarks ?? 1
@@ -177,10 +182,10 @@ export function AssignmentCreatePage() {
       })
 
       await assignmentsApi.importQuestions(assignment.id, {
-        questions: selectedQuestions.map((questionId, index) => ({
-          questionId,
+        questions: selectedQuestions.map((question, index) => ({
+          questionId: question.id,
           sortOrder: index,
-          marks: questionMarks[questionId],
+          marks: questionMarks[question.id],
         })),
       })
 
@@ -376,38 +381,16 @@ export function AssignmentCreatePage() {
               loading={isLoadingQuestions}
               onView={handleViewQuestion}
               selectable
-              selectedIds={selectedQuestions}
+              selectedIds={selectedQuestions.map((question) => question.id)}
               onSelectionChange={handleSelectionChange}
             />
           ) : null}
 
-          {selectedQuestions.length > 0 ? (
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <p className="text-sm font-medium">Marks per question</p>
-                <div className="space-y-2">
-                  {selectedQuestions.map((questionId, index) => {
-                    const question = allQuestions.find((q) => q.id === questionId)
-                    return (
-                      <div key={questionId} className="flex items-center gap-3 text-sm">
-                        <span className="min-w-0 flex-1 truncate">
-                          {index + 1}. {question?.title ?? questionId}
-                        </span>
-                        <Input
-                          type="number"
-                          min={0.1}
-                          step={0.5}
-                          className="w-24"
-                          value={questionMarks[questionId] ?? question?.defaultMarks ?? 1}
-                          onChange={(e) => handleMarksChange(questionId, Number(e.target.value))}
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+          <SelectedQuestionsMarks
+            selectedQuestions={selectedQuestions}
+            questionMarks={questionMarks}
+            onMarksChange={handleMarksChange}
+          />
 
           <QuestionViewDialog
             questionId={viewQuestionId}
