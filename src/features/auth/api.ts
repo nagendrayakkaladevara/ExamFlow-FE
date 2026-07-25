@@ -13,7 +13,8 @@ export const authApi = {
 
   logout: () => api.post<{ message: string }>('/auth/logout', undefined, { skipRefresh: true }),
 
-  me: () => api.get<PublicUser>('/auth/me'),
+  me: (options?: { skipRefresh?: boolean }) =>
+    api.get<PublicUser>('/auth/me', options),
 
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
     api.post<void>('/auth/change-password', body),

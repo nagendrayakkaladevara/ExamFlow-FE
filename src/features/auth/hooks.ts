@@ -11,9 +11,30 @@ import {
 } from '@/features/auth/refresh'
 import { useAuthStore } from '@/features/auth/store'
 import type { ChangePasswordFormValues, LoginFormValues } from '@/features/auth/schemas'
+import type { PublicUser } from '@/types/auth'
 import { resolvePostLoginPath } from '@/lib/api-client'
 import { isApiError } from '@/lib/errors'
 import { queryKeys } from '@/config/query-keys'
+
+async function fetchCurrentUserWithRetry(): Promise<PublicUser> {
+  const maxAttempts = 3
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await authApi.me({ skipRefresh: true })
+    } catch (error) {
+      if (isApiError(error) && error.status === 401) {
+        throw error
+      }
+      if (attempt === maxAttempts) {
+        throw error
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt))
+    }
+  }
+
+  throw new Error('Failed to load user profile during auth bootstrap.')
+}
 
 export function useSessionExpiryHandler() {
   useEffect(() => {
@@ -42,7 +63,7 @@ export function useBootstrapAuth() {
           return null
         }
 
-        const user = await authApi.me()
+        const user = await fetchCurrentUserWithRetry()
         setUser(user)
         return user
       } catch {
