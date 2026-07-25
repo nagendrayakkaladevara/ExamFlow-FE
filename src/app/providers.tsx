@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from 'react-router-dom'
+import { ColorThemeProvider } from '@/components/theme/color-theme-provider'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
@@ -30,12 +31,14 @@ export function AppProviders() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <TooltipProvider>
-            <AuthBootstrap>
-              <RouterProvider router={router} />
-            </AuthBootstrap>
-            <Toaster richColors closeButton position="top-right" />
-          </TooltipProvider>
+          <ColorThemeProvider>
+            <TooltipProvider>
+              <AuthBootstrap>
+                <RouterProvider router={router} />
+              </AuthBootstrap>
+              <Toaster richColors closeButton position="top-right" />
+            </TooltipProvider>
+          </ColorThemeProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

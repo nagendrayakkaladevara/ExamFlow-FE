@@ -1,7 +1,6 @@
 import { themeQuartz } from 'ag-grid-community'
 
 const sharedGridParams = {
-  fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
   fontSize: 14,
   headerFontSize: 12,
   headerFontWeight: 500,
@@ -13,37 +12,34 @@ const sharedGridParams = {
   cellHorizontalPadding: 16,
 } as const
 
-/** AG Grid theme aligned with index.css tokens (Inter, neutral palette, 48px rows). */
-export const appGridTheme = themeQuartz
-  .withParams(
-    {
-      ...sharedGridParams,
-      foregroundColor: 'oklch(0.145 0 0)',
-      backgroundColor: 'oklch(1 0 0)',
-      borderColor: 'oklch(0.922 0 0)',
-      headerBackgroundColor: 'oklch(1 0 0)',
-      headerTextColor: 'oklch(0.556 0 0)',
-      rowHoverColor: 'oklch(0.97 0 0)',
-      selectedRowBackgroundColor: 'oklch(0.97 0 0)',
-      accentColor: 'oklch(0.205 0 0)',
-      rowBorder: { width: 1, style: 'solid', color: 'oklch(0.922 0 0)' },
-      browserColorScheme: 'light',
-    },
-    'light',
-  )
-  .withParams(
-    {
-      ...sharedGridParams,
-      foregroundColor: 'oklch(0.985 0 0)',
-      backgroundColor: 'oklch(0.145 0 0)',
-      borderColor: 'oklch(1 0 0 / 10%)',
-      headerBackgroundColor: 'oklch(0.205 0 0)',
-      headerTextColor: 'oklch(0.708 0 0)',
-      rowHoverColor: 'oklch(0.269 0 0)',
-      selectedRowBackgroundColor: 'oklch(0.269 0 0)',
-      accentColor: 'oklch(0.922 0 0)',
-      rowBorder: { width: 1, style: 'solid', color: 'oklch(1 0 0 / 10%)' },
-      browserColorScheme: 'dark',
-    },
-    'dark',
-  )
+function getCssVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
+/** Builds an AG Grid theme from the active CSS variables on document.documentElement. */
+export function createAppGridTheme() {
+  const fontFamily = getCssVar('--font-sans') || "'Inter', ui-sans-serif, system-ui, sans-serif"
+  const foregroundColor = getCssVar('--foreground')
+  const backgroundColor = getCssVar('--background')
+  const borderColor = getCssVar('--border')
+  const cardColor = getCssVar('--card')
+  const mutedForeground = getCssVar('--muted-foreground')
+  const hoverColor = getCssVar('--muted')
+  const primaryColor = getCssVar('--primary')
+  const isDark = document.documentElement.classList.contains('dark')
+
+  return themeQuartz.withParams({
+    ...sharedGridParams,
+    fontFamily,
+    foregroundColor,
+    backgroundColor,
+    borderColor,
+    headerBackgroundColor: cardColor,
+    headerTextColor: mutedForeground,
+    rowHoverColor: hoverColor,
+    selectedRowBackgroundColor: hoverColor,
+    accentColor: primaryColor,
+    rowBorder: { width: 1, style: 'solid', color: borderColor },
+    browserColorScheme: isDark ? 'dark' : 'light',
+  })
+}

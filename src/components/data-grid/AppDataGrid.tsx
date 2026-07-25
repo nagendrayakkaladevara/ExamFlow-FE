@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useTheme } from 'next-themes'
 import { AgGridReact } from 'ag-grid-react'
 import {
   AllCommunityModule,
@@ -6,7 +8,8 @@ import {
   type GridOptions,
   type GridReadyEvent,
 } from 'ag-grid-community'
-import { appGridTheme } from '@/components/data-grid/app-grid-theme'
+import { createAppGridTheme } from '@/components/data-grid/app-grid-theme'
+import { useColorTheme } from '@/components/theme/color-theme-provider'
 import '@/components/data-grid/app-grid-overrides.css'
 import { cn } from '@/lib/utils'
 
@@ -33,13 +36,20 @@ export function AppDataGrid<TData>({
   onGridReady,
   gridOptions,
 }: AppDataGridProps<TData>) {
+  const { resolvedTheme } = useTheme()
+  const { colorTheme } = useColorTheme()
+  const gridTheme = useMemo(
+    () => createAppGridTheme(),
+    [resolvedTheme, colorTheme],
+  )
+
   return (
     <div
       className={cn('w-full overflow-hidden rounded-lg border', className)}
       style={{ height }}
     >
       <AgGridReact<TData>
-        theme={appGridTheme}
+        theme={gridTheme}
         rowData={rowData}
         columnDefs={columnDefs}
         defaultColDef={{
