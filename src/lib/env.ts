@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+/** Default backend URL when VITE_API_BASE_URL is unset (local dev vs production deploy). */
+const DEFAULT_API_BASE_URL = import.meta.env.PROD
+  ? 'https://exam-flow-be.vercel.app'
+  : 'http://localhost:3000'
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL
 
 const envSchema = z.object({
   VITE_API_BASE_URL: z
