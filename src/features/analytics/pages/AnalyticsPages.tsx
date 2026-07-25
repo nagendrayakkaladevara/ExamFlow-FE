@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -34,7 +34,7 @@ import { WeakTopicsPanel } from '@/features/analytics/components/WeakTopicsPanel
 import { analyticsApi } from '@/features/analytics/api'
 import { useDateRangeFilter } from '@/features/analytics/hooks/useDateRangeFilter'
 import { useAssignmentSummaries } from '@/features/analytics/hooks/useAssignmentSummaries'
-import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
+import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
@@ -71,7 +71,7 @@ function StudentAnalyticsPage() {
     queryFn: () => analyticsApi.studentByTag(dateRange.params),
   })
 
-  if (query.isLoading) return <Skeleton className="h-64 w-full" />
+  if (query.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
   if (!query.data) return null
 
@@ -223,10 +223,10 @@ function LecturerAnalyticsPage() {
 
       {summaryQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
+          <MetricCardLoading />
+          <MetricCardLoading />
+          <MetricCardLoading />
+          <MetricCardLoading />
         </div>
       ) : summaryQuery.data ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -491,7 +491,7 @@ function AdminAnalyticsPage() {
     )
   }
 
-  if (overviewQuery.isLoading) return <Skeleton className="h-64 w-full" />
+  if (overviewQuery.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (overviewQuery.error) {
     return <QueryError error={overviewQuery.error} onRetry={() => overviewQuery.refetch()} />
   }
@@ -600,7 +600,7 @@ function AdminAnalyticsPage() {
             </div>
           </div>
           {trendsQuery.isLoading ? (
-            <Skeleton className="h-72 w-full" />
+            <LoadingState minHeightClassName="min-h-72" />
           ) : trendsQuery.data ? (
             <AdminTrendChart data={trendsQuery.data} />
           ) : null}
@@ -608,7 +608,7 @@ function AdminAnalyticsPage() {
 
         <TabsContent value="alerts">
           {alertsQuery.isLoading ? (
-            <Skeleton className="h-48 w-full" />
+            <LoadingState minHeightClassName="min-h-48" />
           ) : (
             <AlertsList alerts={alertsQuery.data ?? []} />
           )}

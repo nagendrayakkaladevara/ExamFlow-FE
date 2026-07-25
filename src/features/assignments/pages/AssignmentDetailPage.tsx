@@ -5,7 +5,7 @@ import { QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AssignmentQuestionsPanel } from '@/features/assignments/components/AssignmentQuestionsPanel'
 import { AssignmentStudentsPanel } from '@/features/assignments/components/AssignmentStudentsPanel'
@@ -14,7 +14,7 @@ import { analyticsApi } from '@/features/analytics/api'
 import { AssignmentExportButton } from '@/features/analytics/components/ExportCsvButton'
 import { QuestionBreakdownTable } from '@/features/analytics/components/QuestionBreakdownTable'
 import { AssignmentTimingBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
-import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
+import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
 import {
   formatAssignmentTimingMeta,
   getAssignmentTimingStatus,
@@ -31,42 +31,12 @@ import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 
-function AssignmentDetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-20 w-full" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCardSkeleton />
-        <MetricCardSkeleton />
-        <MetricCardSkeleton />
-        <MetricCardSkeleton />
-      </div>
-      <Skeleton className="h-96 w-full" />
-    </div>
-  )
+function AssignmentDetailLoading() {
+  return <LoadingState minHeightClassName="min-h-96" />
 }
 
-function StudentAssignmentDetailSkeleton() {
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <Skeleton className="h-9 w-40" />
-      <div className="space-y-8 rounded-lg border p-6 md:p-8">
-        <div className="space-y-4 border-b pb-8">
-          <Skeleton className="h-5 w-16" />
-          <Skeleton className="h-9 w-4/5" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-        <div className="grid gap-6 sm:grid-cols-3">
-          <Skeleton className="h-14" />
-          <Skeleton className="h-14" />
-          <Skeleton className="h-14" />
-        </div>
-        <Skeleton className="h-28" />
-        <Skeleton className="h-11 w-full sm:w-48" />
-      </div>
-    </div>
-  )
+function StudentAssignmentDetailLoading() {
+  return <LoadingState minHeightClassName="min-h-96" />
 }
 
 function formatResultPolicyLabel(
@@ -117,7 +87,7 @@ export function AssignmentDetailPage() {
   })
 
   if (query.isLoading) {
-    return isLecturer ? <AssignmentDetailSkeleton /> : <StudentAssignmentDetailSkeleton />
+    return isLecturer ? <AssignmentDetailLoading /> : <StudentAssignmentDetailLoading />
   }
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
   if (!query.data) return null
@@ -194,10 +164,10 @@ export function AssignmentDetailPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summaryQuery.isLoading ? (
           <>
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
           </>
         ) : (
           <>
@@ -309,7 +279,7 @@ export function AssignmentDetailPage() {
               ) : null}
             </section>
           ) : summaryQuery.isLoading ? (
-            <Skeleton className="h-32 w-full" />
+            <LoadingState minHeightClassName="min-h-32" />
           ) : summaryQuery.error ? (
             <QueryError
               error={summaryQuery.error}
@@ -371,7 +341,7 @@ function StudentAssignmentDetail({
   const canStart = timingStatus === 'open' && !submitted
 
   if (attemptQuery.isLoading) {
-    return <StudentAssignmentDetailSkeleton />
+    return <StudentAssignmentDetailLoading />
   }
 
   return (

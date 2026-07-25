@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import {
   Select,
   SelectContent,
@@ -281,7 +281,7 @@ export function AssignmentEditPage() {
     onSettled: () => setDeleteOpen(false),
   })
 
-  if (assignmentQuery.isLoading || !initialized) return <Skeleton className="h-64 w-full" />
+  if (assignmentQuery.isLoading || !initialized) return <LoadingState minHeightClassName="min-h-64" />
   if (assignmentQuery.error) {
     return <QueryError error={assignmentQuery.error} onRetry={() => assignmentQuery.refetch()} />
   }
@@ -458,7 +458,7 @@ export function AssignmentEditPage() {
             onClearTags={() => setSelectedTags([])}
           />
 
-          {questionsQuery.isLoading ? <Skeleton className="h-64 w-full" /> : null}
+          {questionsQuery.isLoading ? <LoadingState minHeightClassName="min-h-64" /> : null}
           {questionsQuery.error ? (
             <QueryError error={questionsQuery.error} onRetry={() => questionsQuery.refetch()} />
           ) : null}

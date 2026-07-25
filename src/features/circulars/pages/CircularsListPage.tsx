@@ -7,7 +7,7 @@ import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { circularsApi } from '@/features/circulars/api'
 import { CircularListMeta } from '@/features/circulars/circular-meta'
 import { queryKeys } from '@/config/query-keys'
@@ -21,19 +21,6 @@ import {
   staggerContainer,
 } from '@/lib/motion'
 
-function CircularFeedSkeleton() {
-  return (
-    <div className="divide-y rounded-lg border">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="space-y-2 px-6 py-4">
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-3 w-40" />
-          <Skeleton className="h-4 w-full" />
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export function CircularsListPage() {
   const role = useAuthStore((s) => s.user?.role)
@@ -81,7 +68,7 @@ export function CircularsListPage() {
         />
       </motion.div>
 
-      {query.isLoading ? <CircularFeedSkeleton /> : null}
+      {query.isLoading ? <LoadingState minHeightClassName="min-h-64" /> : null}
       {query.error ? <QueryError error={query.error} onRetry={() => query.refetch()} /> : null}
 
       <AnimatePresence mode="wait">

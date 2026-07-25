@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import {
   Table,
   TableBody,
@@ -246,7 +246,7 @@ export function ClassLecturersPanel({ classId, isAdmin }: ClassMembersPanelProps
         <AssignLecturerCard classId={classId} />
       ) : null}
 
-      {membersQuery.isLoading ? <Skeleton className="h-48 w-full" /> : null}
+      {membersQuery.isLoading ? <LoadingState minHeightClassName="min-h-48" /> : null}
 
       {rosterUnavailable ? (
         <EmptyState
@@ -324,7 +324,7 @@ export function ClassStudentsPanel({ classId, isAdmin }: ClassMembersPanelProps)
         <AssignStudentCard classId={classId} />
       ) : null}
 
-      {membersQuery.isLoading ? <Skeleton className="h-48 w-full" /> : null}
+      {membersQuery.isLoading ? <LoadingState minHeightClassName="min-h-48" /> : null}
 
       {rosterUnavailable ? (
         <EmptyState

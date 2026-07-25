@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { DashboardPanel } from '@/features/dashboard/components/DashboardPanel'
 import { formatPercent } from '@/lib/format'
 import type { StudentTagAnalytics } from '@/types/domain'
@@ -20,10 +20,7 @@ export function WeakTopicsPreview({ data, isLoading, analyticsHref }: WeakTopics
       viewAllLabel="View performance"
     >
       {isLoading ? (
-        <div className="space-y-3 py-2">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
+        <LoadingState minHeightClassName="min-h-32" />
       ) : (data?.weakTopics.length ?? 0) > 0 ? (
         <div className="divide-y">
           {data!.weakTopics.slice(0, 3).map((topic) => (

@@ -14,10 +14,10 @@ import {
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { AssignmentTimingBadge, SubmissionStatusBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
 import { DashboardListItem, DashboardPanel } from '@/features/dashboard/components/DashboardPanel'
-import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
+import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
 import { QuickActions } from '@/features/dashboard/components/QuickActions'
 import {
   formatActivityTimestamp,
@@ -72,11 +72,11 @@ function AdminDashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {overviewQuery.isLoading ? (
           <>
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
           </>
         ) : overviewQuery.data ? (
           <>
@@ -117,7 +117,7 @@ function AdminDashboard() {
             viewAllHref={`${basePath}/analytics?tab=activity`}
           >
             {activityQuery.isLoading ? (
-              <ActivitySkeleton />
+              <ActivityLoading />
             ) : activityItems.length > 0 ? (
               activityItems.map((item) => (
                 <DashboardListItem
@@ -158,7 +158,7 @@ function AdminDashboard() {
 
       <DashboardPanel title="Latest circulars" viewAllHref={`${basePath}/circulars`}>
         {circularsQuery.isLoading ? (
-          <ActivitySkeleton />
+          <ActivityLoading />
         ) : (circularsQuery.data ?? []).length > 0 ? (
           (circularsQuery.data ?? []).map((circular) => (
             <DashboardListItem
@@ -217,10 +217,10 @@ function LecturerDashboard() {
     <>
       {summaryQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
+          <MetricCardLoading />
+          <MetricCardLoading />
+          <MetricCardLoading />
+          <MetricCardLoading />
         </div>
       ) : summaryQuery.data ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -265,7 +265,7 @@ function LecturerDashboard() {
             viewAllHref={`${basePath}/assignments`}
           >
             {assignmentsQuery.isLoading ? (
-              <ActivitySkeleton />
+              <ActivityLoading />
             ) : recentAssignments.length > 0 ? (
               recentAssignments.map((assignment) => (
                 <DashboardListItem
@@ -290,7 +290,7 @@ function LecturerDashboard() {
 
           <DashboardPanel title="Active polls" viewAllHref={`${basePath}/polls`}>
             {pollsQuery.isLoading ? (
-              <ActivitySkeleton />
+              <ActivityLoading />
             ) : (pollsQuery.data ?? []).length > 0 ? (
               (pollsQuery.data ?? []).map((poll) => (
                 <DashboardListItem
@@ -325,7 +325,7 @@ function LecturerDashboard() {
 
           <DashboardPanel title="Announcements" viewAllHref={`${basePath}/circulars`}>
             {circularsQuery.isLoading ? (
-              <ActivitySkeleton rows={3} />
+              <ActivityLoading />
             ) : (circularsQuery.data ?? []).length > 0 ? (
               (circularsQuery.data ?? []).slice(0, 3).map((circular) => (
                 <DashboardListItem
@@ -386,8 +386,8 @@ function StudentDashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {analyticsQuery.isLoading ? (
           <>
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
+            <MetricCardLoading />
+            <MetricCardLoading />
           </>
         ) : analyticsQuery.data ? (
           <>
@@ -417,7 +417,7 @@ function StudentDashboard() {
             viewAllHref={`${basePath}/assignments`}
           >
             {assignmentsQuery.isLoading ? (
-              <ActivitySkeleton />
+              <ActivityLoading />
             ) : upcomingAssignments.length > 0 ? (
               upcomingAssignments.map((assignment) => (
                 <DashboardListItem
@@ -445,7 +445,7 @@ function StudentDashboard() {
             viewAllLabel="View performance"
           >
             {analyticsQuery.isLoading ? (
-              <ActivitySkeleton />
+              <ActivityLoading />
             ) : recentResults.length > 0 ? (
               recentResults.map((result) => (
                 <DashboardListItem
@@ -502,7 +502,7 @@ function StudentDashboard() {
 
           <DashboardPanel title="Announcements" viewAllHref={`${basePath}/circulars`}>
             {circularsQuery.isLoading ? (
-              <ActivitySkeleton rows={3} />
+              <ActivityLoading />
             ) : (circularsQuery.data ?? []).length > 0 ? (
               (circularsQuery.data ?? []).slice(0, 4).map((circular) => (
                 <DashboardListItem
@@ -547,19 +547,8 @@ export function RoleDashboardPage() {
   )
 }
 
-function ActivitySkeleton({ rows = 4 }: { rows?: number }) {
-  return (
-    <div className="space-y-3 py-2">
-      {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="flex items-center gap-4 border-b py-3 last:border-b-0">
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-3/5" />
-            <Skeleton className="h-3 w-2/5" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+function ActivityLoading() {
+  return <LoadingState minHeightClassName="min-h-40" />
 }
 
 function PanelEmptyState({

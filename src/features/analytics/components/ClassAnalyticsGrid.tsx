@@ -1,4 +1,5 @@
-import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
+import { MetricCard } from '@/features/dashboard/components/MetricCard'
 import { formatPercent } from '@/lib/format'
 import type { LecturerClassAnalytics } from '@/types/domain'
 
@@ -9,13 +10,7 @@ interface ClassAnalyticsGridProps {
 
 export function ClassAnalyticsGrid({ data, isLoading }: ClassAnalyticsGridProps) {
   if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <MetricCardSkeleton key={index} />
-        ))}
-      </div>
-    )
+    return <LoadingState minHeightClassName="min-h-48" />
   }
 
   if (!data) return null

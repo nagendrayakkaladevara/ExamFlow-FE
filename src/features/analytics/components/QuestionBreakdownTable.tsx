@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import {
   Table,
   TableBody,
@@ -29,7 +29,7 @@ export function QuestionBreakdownTable({ assignmentId }: QuestionBreakdownTableP
     enabled: Boolean(assignmentId),
   })
 
-  if (query.isLoading) return <Skeleton className="h-64 w-full" />
+  if (query.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
 
   const questions = query.data ?? []

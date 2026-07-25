@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Textarea } from '@/components/ui/textarea'
 import { questionsApi, toQuestionPayload } from '@/features/questions/api'
 import {
@@ -243,8 +243,7 @@ export function QuestionFormPage() {
   if (isEdit && questionQuery.isLoading) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 px-0">
-        <Skeleton className="h-10 w-48 max-w-full sm:w-64" />
-        <Skeleton className="h-72 w-full sm:h-96" />
+        <LoadingState minHeightClassName="min-h-96" />
       </div>
     )
   }
@@ -693,7 +692,7 @@ export function QuestionFormPage() {
                       <FormItem>
                         <FormLabel>Tags</FormLabel>
                         {tagsQuery.isLoading ? (
-                          <Skeleton className="h-11 w-full sm:h-9" />
+                          <LoadingState minHeightClassName="min-h-11" size="sm" />
                         ) : (tagsQuery.data ?? []).length === 0 ? (
                           <FormDescription>
                             No tags yet. Create tags from the tags page.
