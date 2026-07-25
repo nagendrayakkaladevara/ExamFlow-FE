@@ -95,7 +95,10 @@ function SidebarProvider({
   }, [isMobile, setOpen, setOpenMobile])
 
   const closeMobileSidebar = React.useCallback(() => {
-    setOpenMobile(false)
+    // Defer close to the next frame so tap feedback renders before the exit animation.
+    requestAnimationFrame(() => {
+      setOpenMobile(false)
+    })
   }, [setOpenMobile])
 
   // Adds a keyboard shortcut to toggle the sidebar.
@@ -202,7 +205,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground will-change-transform [&>button]:hidden"
+          className="w-(--sidebar-width) max-w-[min(18rem,85vw)] bg-sidebar p-0 text-sidebar-foreground sm:max-w-[min(18rem,85vw)] [&>button]:hidden"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
