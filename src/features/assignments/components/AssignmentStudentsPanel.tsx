@@ -4,7 +4,7 @@ import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import {
   Table,
   TableBody,
@@ -238,7 +238,7 @@ export function AssignmentStudentsPanel({
   }, [rosterQuery.data?.rankings, search])
 
   if (summaryQuery.isLoading && !summary) {
-    return <Skeleton className="h-64 w-full" />
+    return <LoadingState minHeightClassName="min-h-64" />
   }
 
   if (rosterQuery.error) {
@@ -296,7 +296,7 @@ export function AssignmentStudentsPanel({
 
       <div className="space-y-4">
         {rosterQuery.isLoading ? (
-          <Skeleton className="h-48 w-full" />
+          <LoadingState minHeightClassName="min-h-48" />
         ) : activeTab === 'completed' ? (
           rankings.length > 0 ? (
             <StudentTable

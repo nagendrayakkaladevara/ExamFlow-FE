@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { usersApi } from '@/features/users/api'
 import { queryKeys } from '@/config/query-keys'
 import { ActiveBadge, RoleBadge } from '@/components/shared/StatusBadge'
@@ -78,7 +78,7 @@ export function UserDetailPage() {
     },
   })
 
-  if (query.isLoading) return <Skeleton className="h-64 w-full" />
+  if (query.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
   if (!query.data) return null
 

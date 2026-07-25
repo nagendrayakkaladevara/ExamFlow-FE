@@ -19,7 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { assignmentsApi } from '@/features/assignments/api'
 import { isSubmissionCompleted } from '@/features/assignments/utils'
 import { queryKeys } from '@/config/query-keys'
@@ -133,7 +133,9 @@ export function TakeAssignmentPage() {
     return `${minutes}:${String(seconds).padStart(2, '0')}`
   }, [remainingMs])
 
-  if (assignmentQuery.isLoading || initMutation.isPending) return <Skeleton className="h-64 w-full" />
+  if (assignmentQuery.isLoading || initMutation.isPending) {
+    return <LoadingState minHeightClassName="min-h-64" />
+  }
   if (assignmentQuery.error) {
     return <QueryError error={assignmentQuery.error} onRetry={() => assignmentQuery.refetch()} />
   }

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { PollTagBadge } from '@/features/polls/components/PollTagBadge'
 import { pollsApi } from '@/features/polls/api'
 import {
@@ -80,7 +80,7 @@ export function PollDetailPage() {
     setSelectedOptionId('')
   }, [id])
 
-  if (pollQuery.isLoading) return <Skeleton className="h-64 w-full" />
+  if (pollQuery.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (pollQuery.error) return <QueryError error={pollQuery.error} onRetry={() => pollQuery.refetch()} />
   if (!poll) return null
 
@@ -216,7 +216,7 @@ export function PollDetailPage() {
                 ) : null}
               </div>
 
-              {resultsQuery.isLoading ? <Skeleton className="h-32 w-full" /> : null}
+              {resultsQuery.isLoading ? <LoadingState minHeightClassName="min-h-32" /> : null}
               {resultsQuery.error ? (
                 <QueryError error={resultsQuery.error} onRetry={() => resultsQuery.refetch()} />
               ) : null}

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Textarea } from '@/components/ui/textarea'
 import { AudiencePicker, type AudienceValue } from '@/components/shared/AudiencePicker'
 import { circularsApi } from '@/features/circulars/api'
@@ -113,7 +113,7 @@ export function CircularFormPage() {
     },
   })
 
-  if (isEdit && circularQuery.isLoading) return <Skeleton className="h-64 w-full" />
+  if (isEdit && circularQuery.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (isEdit && circularQuery.error) {
     return <QueryError error={circularQuery.error} onRetry={() => circularQuery.refetch()} />
   }

@@ -3,14 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AssignmentStudentsPanel } from '@/features/assignments/components/AssignmentStudentsPanel'
 import { assignmentsApi } from '@/features/assignments/api'
 import { analyticsApi } from '@/features/analytics/api'
 import { AssignmentExportButton } from '@/features/analytics/components/ExportCsvButton'
 import { QuestionBreakdownTable } from '@/features/analytics/components/QuestionBreakdownTable'
-import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
+import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
 
@@ -30,12 +30,7 @@ export function AssignmentResultsPage() {
   })
 
   if (assignmentQuery.isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-48 w-full" />
-      </div>
-    )
+    return <LoadingState minHeightClassName="min-h-64" />
   }
 
   if (assignmentQuery.error) {
@@ -65,10 +60,10 @@ export function AssignmentResultsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summaryQuery.isLoading ? (
           <>
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
           </>
         ) : analytics ? (
           <>

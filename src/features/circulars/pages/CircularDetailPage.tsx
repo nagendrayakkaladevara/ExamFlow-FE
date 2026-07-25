@@ -5,7 +5,7 @@ import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { ShareLinkButton } from '@/components/shared/ShareLinkButton'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { circularsApi } from '@/features/circulars/api'
 import { useAuthStore } from '@/features/auth/store'
 import { queryKeys } from '@/config/query-keys'
@@ -21,24 +21,8 @@ import {
 } from '@/lib/motion'
 import { isAccessDeniedError } from '@/lib/errors'
 
-function CircularDetailSkeleton() {
-  return (
-    <div className="mx-auto max-w-3xl">
-      <div className="space-y-8 rounded-lg border p-6 md:p-8">
-        <div className="space-y-4 border-b pb-8">
-          <Skeleton className="h-3 w-32" />
-          <Skeleton className="h-9 w-4/5" />
-          <Skeleton className="h-4 w-40" />
-        </div>
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-      </div>
-    </div>
-  )
+function CircularDetailLoading() {
+  return <LoadingState minHeightClassName="min-h-64" />
 }
 
 export function CircularDetailPage() {
@@ -58,7 +42,7 @@ export function CircularDetailPage() {
   const itemTransition = motionTransition(reducedMotion ?? false, 0.25)
   const panelTransition = motionTransition(reducedMotion ?? false, 0.3)
 
-  if (query.isLoading) return <CircularDetailSkeleton />
+  if (query.isLoading) return <CircularDetailLoading />
   if (query.error && isAccessDeniedError(query.error)) {
     return (
       <EmptyState

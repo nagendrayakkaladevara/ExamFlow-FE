@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { ClassesDataGrid } from '@/features/classes/components/ClassesDataGrid'
 import { classesApi } from '@/features/classes/api'
 import { queryKeys } from '@/config/query-keys'
@@ -79,7 +79,7 @@ function RoleClassesList({ basePath }: { basePath: string }) {
     [classes, debouncedSearch],
   )
 
-  if (isLoading) return <Skeleton className="h-64 w-full" />
+  if (isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (error) return <QueryError error={error} />
 
   return (
@@ -241,7 +241,7 @@ function AdminClassesList({ basePath }: { basePath: string }) {
         </DropdownMenu>
       </div>
 
-      {query.isLoading ? <Skeleton className="h-64 w-full" /> : null}
+      {query.isLoading ? <LoadingState minHeightClassName="min-h-64" /> : null}
       {query.error ? <QueryError error={query.error} onRetry={() => query.refetch()} /> : null}
 
       {filteredClasses.length === 0 && !isLoading ? (

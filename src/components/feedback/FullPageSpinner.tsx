@@ -1,9 +1,9 @@
-import { Loader2 } from 'lucide-react'
+import { LoadingSpinner } from '@/components/feedback/LoadingSpinner'
 
 export function FullPageSpinner() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-background">
-      <Loader2 className="size-8 animate-spin text-muted-foreground" aria-label="Loading" />
+      <LoadingSpinner size="lg" />
     </div>
   )
 }

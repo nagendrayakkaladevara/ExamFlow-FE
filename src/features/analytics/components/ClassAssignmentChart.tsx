@@ -8,7 +8,7 @@ import {
   YAxis,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { chartTheme } from '@/features/analytics/components/chart-theme'
 import { formatPercent } from '@/lib/format'
 
@@ -35,7 +35,7 @@ export function ClassAssignmentChart({
   metric = 'completion',
 }: ClassAssignmentChartProps) {
   if (isLoading) {
-    return <Skeleton className="h-72 w-full" />
+    return <LoadingState minHeightClassName="min-h-72" />
   }
 
   const data = items

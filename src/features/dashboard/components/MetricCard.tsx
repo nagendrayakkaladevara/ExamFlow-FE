@@ -1,4 +1,4 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingSpinner } from '@/components/feedback/LoadingSpinner'
 import { cn } from '@/lib/utils'
 
 interface MetricCardProps {
@@ -22,11 +22,10 @@ export function MetricCard({ label, value, description, className }: MetricCardP
   )
 }
 
-export function MetricCardSkeleton() {
+export function MetricCardLoading() {
   return (
-    <div className="rounded-lg border bg-card p-6">
-      <Skeleton className="h-3 w-20" />
-      <Skeleton className="mt-3 h-8 w-16" />
+    <div className="flex min-h-[6.5rem] items-center justify-center rounded-lg border bg-card p-6">
+      <LoadingSpinner size="sm" />
     </div>
   )
 }

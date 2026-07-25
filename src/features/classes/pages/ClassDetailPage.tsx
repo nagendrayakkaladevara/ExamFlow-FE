@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -35,7 +35,7 @@ import { classesApi } from '@/features/classes/api'
 import { assignmentsApi } from '@/features/assignments/api'
 import { analyticsApi } from '@/features/analytics/api'
 import { ClassAnalyticsGrid } from '@/features/analytics/components/ClassAnalyticsGrid'
-import { MetricCard, MetricCardSkeleton } from '@/features/dashboard/components/MetricCard'
+import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
 import { isApiError } from '@/lib/errors'
@@ -44,19 +44,8 @@ import { useRoleBasePath } from '@/hooks/useRolePath'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import type { ClassRecord } from '@/types/domain'
 
-function ClassDetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-20 w-full" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCardSkeleton />
-        <MetricCardSkeleton />
-        <MetricCardSkeleton />
-        <MetricCardSkeleton />
-      </div>
-      <Skeleton className="h-96 w-full" />
-    </div>
-  )
+function ClassDetailLoading() {
+  return <LoadingState minHeightClassName="min-h-96" />
 }
 
 function useClassData(id: string, isAdmin: boolean) {
@@ -204,7 +193,7 @@ export function ClassDetailPage() {
     },
   })
 
-  if (isLoading) return <ClassDetailSkeleton />
+  if (isLoading) return <ClassDetailLoading />
   if (error) return <QueryError error={error} onRetry={refetch} />
   if (!classData) return null
 
@@ -324,10 +313,10 @@ export function ClassDetailPage() {
         </div>
       ) : isAdmin && adminAnalyticsQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
-          <MetricCardSkeleton />
+          <MetricCardLoading />
+          <MetricCardLoading />
+          <MetricCardLoading />
+          <MetricCardLoading />
         </div>
       ) : null}
 
@@ -387,7 +376,7 @@ export function ClassDetailPage() {
 
         {isLecturer || isAdmin ? (
           <TabsContent value="assignments" className="space-y-4">
-            {assignmentsQuery.isLoading ? <Skeleton className="h-48 w-full" /> : null}
+            {assignmentsQuery.isLoading ? <LoadingState minHeightClassName="min-h-48" /> : null}
             {classAssignments.length === 0 && !assignmentsQuery.isLoading ? (
               <Card>
                 <CardContent className="py-8 text-center text-sm text-muted-foreground">

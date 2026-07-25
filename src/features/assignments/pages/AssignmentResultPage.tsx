@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { assignmentsApi } from '@/features/assignments/api'
 import { formatQuestionType } from '@/features/assignments/utils'
 import { queryKeys } from '@/config/query-keys'
@@ -144,7 +144,7 @@ function AssignmentResultContent({
     retry: false,
   })
 
-  if (query.isLoading) return <Skeleton className="h-64 w-full" />
+  if (query.isLoading) return <LoadingState minHeightClassName="min-h-64" />
 
   if (query.error) {
     const message = isApiError(query.error) ? query.error.message : 'Unable to load results.'

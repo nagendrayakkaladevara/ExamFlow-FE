@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { PollTagBadge } from '@/features/polls/components/PollTagBadge'
 import { pollsApi } from '@/features/polls/api'
 import { sortPolls, sortPollTags, getPollTags } from '@/features/polls/utils'
@@ -22,22 +22,6 @@ import {
   staggerContainer,
 } from '@/lib/motion'
 
-function PollFeedSkeleton() {
-  return (
-    <div className="divide-y rounded-lg border">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="space-y-3 px-6 py-5">
-          <div className="flex gap-2">
-            <Skeleton className="h-5 w-16 rounded-full" />
-            <Skeleton className="h-5 w-24 rounded-full" />
-          </div>
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-3 w-48" />
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export function PollsListPage() {
   const role = useAuthStore((s) => s.user?.role)
@@ -84,7 +68,7 @@ export function PollsListPage() {
         />
       </motion.div>
 
-      {query.isLoading ? <PollFeedSkeleton /> : null}
+      {query.isLoading ? <LoadingState minHeightClassName="min-h-64" /> : null}
       {query.error ? <QueryError error={query.error} onRetry={() => query.refetch()} /> : null}
 
       <AnimatePresence mode="wait">

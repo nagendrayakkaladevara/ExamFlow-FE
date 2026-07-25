@@ -1,5 +1,5 @@
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { formatActivityTimestamp } from '@/features/dashboard/utils'
 import type { ActivityFeed } from '@/types/domain'
 
@@ -32,13 +32,7 @@ export function ActivityFeedList({
   isLoadingMore,
 }: ActivityFeedListProps) {
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-14 w-full" />
-      </div>
-    )
+    return <LoadingState minHeightClassName="min-h-40" />
   }
 
   if (items.length === 0) {

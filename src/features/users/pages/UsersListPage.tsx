@@ -5,7 +5,7 @@ import { Plus, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import {
   Table,
   TableBody,
@@ -70,7 +70,7 @@ export function UsersListPage() {
         ))}
       </div>
 
-      {query.isLoading ? <Skeleton className="h-64 w-full" /> : null}
+      {query.isLoading ? <LoadingState minHeightClassName="min-h-64" /> : null}
       {query.error ? <QueryError error={query.error} onRetry={() => query.refetch()} /> : null}
 
       {query.data?.length === 0 ? (

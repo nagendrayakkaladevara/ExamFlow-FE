@@ -45,7 +45,7 @@ import { useAuthStore } from '@/features/auth/store'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import { isApiError } from '@/lib/errors'
 import { queryKeys } from '@/config/query-keys'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { cn } from '@/lib/utils'
 import { useRoleBasePath } from '@/hooks/useRolePath'
 import { useEffect, useState } from 'react'
@@ -142,7 +142,7 @@ export function PollFormPage() {
     },
   })
 
-  if (isEdit && pollQuery.isLoading) return <Skeleton className="h-64 w-full" />
+  if (isEdit && pollQuery.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (isEdit && pollQuery.error) {
     return <QueryError error={pollQuery.error} onRetry={() => pollQuery.refetch()} />
   }

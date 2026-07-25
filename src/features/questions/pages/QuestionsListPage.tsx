@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { QuestionBankFilterBar } from '@/features/questions/components/QuestionBankFilterBar'
 import { QuestionViewDialog } from '@/features/questions/components/QuestionViewDialog'
 import { QuestionsDataGrid } from '@/features/questions/components/QuestionsDataGrid'
@@ -131,7 +131,7 @@ export function QuestionsListPage() {
         onClearTags={() => setSelectedTags([])}
       />
 
-      {questionsQuery.isLoading ? <Skeleton className="h-64 w-full" /> : null}
+      {questionsQuery.isLoading ? <LoadingState minHeightClassName="min-h-64" /> : null}
       {questionsQuery.error ? (
         <QueryError error={questionsQuery.error} onRetry={() => questionsQuery.refetch()} />
       ) : null}

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ interface WeakTopicsPanelProps {
 }
 
 export function WeakTopicsPanel({ data, isLoading, error, onRetry }: WeakTopicsPanelProps) {
-  if (isLoading) return <Skeleton className="h-48 w-full" />
+  if (isLoading) return <LoadingState minHeightClassName="min-h-48" />
   if (error) return <QueryError error={error} onRetry={onRetry} />
 
   if (!data) return null
