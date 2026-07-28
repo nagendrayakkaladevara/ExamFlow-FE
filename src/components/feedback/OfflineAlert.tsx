@@ -11,7 +11,7 @@ export function OfflineAlert() {
 
   return (
     <div className="fixed inset-x-0 top-0 z-50 p-4">
-      <Alert className="mx-auto max-w-lg shadow-md">
+      <Alert variant="destructive" className="mx-auto max-w-lg shadow-md">
         <WifiOff />
         <AlertDescription>You're offline.</AlertDescription>
       </Alert>
