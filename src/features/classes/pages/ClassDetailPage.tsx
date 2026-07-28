@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { ActiveBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { ClassInformationPanel } from '@/features/classes/components/ClassInformationPanel'
 import {
   ClassLecturersPanel,
   ClassStudentsPanel,
@@ -333,37 +334,7 @@ export function ClassDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Class information</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
-              <div>
-                <p className="text-muted-foreground">Name</p>
-                <p className="font-medium">{classData.name}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Code</p>
-                <p className="font-medium">{classData.code ?? '—'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Status</p>
-                <div className="mt-1">
-                  <ActiveBadge active={classData.isActive} />
-                </div>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Last updated</p>
-                <p className="font-medium">{formatDateTime(classData.updatedAt)}</p>
-              </div>
-              {classData.description ? (
-                <div className="sm:col-span-2">
-                  <p className="text-muted-foreground">Description</p>
-                  <p className="mt-1 leading-relaxed text-foreground">{classData.description}</p>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
+          <ClassInformationPanel classData={classData} />
         </TabsContent>
 
         <TabsContent value="lecturers">
