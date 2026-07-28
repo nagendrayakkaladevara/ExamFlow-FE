@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 interface RefreshButtonProps {
   onClick: () => void
   isRefreshing?: boolean
+  disabled?: boolean
   className?: string
   size?: VariantProps<typeof buttonVariants>['size']
 }
@@ -13,6 +14,7 @@ interface RefreshButtonProps {
 export function RefreshButton({
   onClick,
   isRefreshing,
+  disabled,
   className,
   size,
 }: RefreshButtonProps) {
@@ -22,7 +24,7 @@ export function RefreshButton({
       variant="outline"
       size={size}
       onClick={onClick}
-      disabled={isRefreshing}
+      disabled={disabled || isRefreshing}
       className={className}
     >
       <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
