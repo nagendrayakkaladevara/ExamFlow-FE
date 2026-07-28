@@ -53,10 +53,21 @@ export function isAccessDeniedError(error: unknown): boolean {
   return isApiError(error) && (error.status === 403 || error.status === 404)
 }
 
-/** True when a detail-page fetch failed because the resource is missing or unreachable. */
-export function isMissingResourceError(error: unknown): boolean {
+export const RESOURCE_NOT_FOUND_MESSAGE = "The page you're looking for doesn't exist."
+export const RESOURCE_FORBIDDEN_MESSAGE = "You don't have permission to access this page."
+
+export function isForbiddenResourceError(error: unknown): boolean {
+  return isApiError(error) && error.status === 403
+}
+
+export function isNotFoundResourceError(error: unknown): boolean {
   if (!isApiError(error)) return false
-  if (error.status === 403 || error.status === 404) return true
+  if (error.status === 404) return true
   // Malformed route IDs (e.g. invalid UUID) surface as param validation errors.
   return error.status === 400 && error.code === 'VALIDATION_ERROR'
+}
+
+/** True when a detail-page fetch failed because the resource is missing or unreachable. */
+export function isMissingResourceError(error: unknown): boolean {
+  return isForbiddenResourceError(error) || isNotFoundResourceError(error)
 }

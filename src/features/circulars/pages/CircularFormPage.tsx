@@ -18,7 +18,13 @@ import { ALLOWED_IMAGE_TYPES, UPLOAD_MAX_SIZE_BYTES } from '@/config/constants'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
-import { isApiError, isMissingResourceError } from '@/lib/errors'
+import {
+  isApiError,
+  isForbiddenResourceError,
+  isNotFoundResourceError,
+  RESOURCE_FORBIDDEN_MESSAGE,
+  RESOURCE_NOT_FOUND_MESSAGE,
+} from '@/lib/errors'
 import { cn } from '@/lib/utils'
 
 const formFooterClassName =
@@ -115,11 +121,22 @@ export function CircularFormPage() {
 
   if (isEdit && circularQuery.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (isEdit && circularQuery.error) {
-    if (isMissingResourceError(circularQuery.error)) {
+    if (isForbiddenResourceError(circularQuery.error)) {
       return (
         <EmptyState
-          title="Circular not found"
-          description="This circular does not exist or you do not have access to it."
+          title={RESOURCE_FORBIDDEN_MESSAGE}
+          action={
+            <Button variant="outline" asChild>
+              <Link to={`${basePath}/circulars`}>Back to circulars</Link>
+            </Button>
+          }
+        />
+      )
+    }
+    if (isNotFoundResourceError(circularQuery.error)) {
+      return (
+        <EmptyState
+          title={RESOURCE_NOT_FOUND_MESSAGE}
           action={
             <Button variant="outline" asChild>
               <Link to={`${basePath}/circulars`}>Back to circulars</Link>
