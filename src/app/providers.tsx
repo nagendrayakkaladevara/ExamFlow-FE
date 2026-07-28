@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { FullPageSpinner } from '@/components/feedback/FullPageSpinner'
+import { OfflineAlert } from '@/components/feedback/OfflineAlert'
 import { createQueryClient } from '@/lib/query-client'
 import { useBootstrapAuth, useSessionExpiryHandler } from '@/features/auth/hooks'
 import { router } from '@/app/router'
@@ -36,6 +37,7 @@ export function AppProviders() {
               <AuthBootstrap>
                 <RouterProvider router={router} />
               </AuthBootstrap>
+              <OfflineAlert />
               <Toaster richColors closeButton position="top-right" />
             </TooltipProvider>
           </ColorThemeProvider>
