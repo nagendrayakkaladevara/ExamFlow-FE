@@ -1,4 +1,5 @@
 import { MetricCard } from '@/features/dashboard/components/MetricCard'
+import { AnalyticsMetricPlaceholder } from '@/features/analytics/components/AnalyticsMetricPlaceholder'
 import { formatPercent } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { LecturerClassAnalytics } from '@/types/domain'
@@ -34,33 +35,19 @@ function ClassAnalyticsStat({
   )
 }
 
-function AnalyticsLoadingPlaceholder({ compact = false }: { compact?: boolean }) {
-  return (
-    <div
-      className={cn(
-        'animate-pulse rounded-lg border bg-card',
-        compact ? 'min-h-[5.5rem] p-4' : 'min-h-[6.5rem] p-6',
-      )}
-    >
-      <div className="h-4 w-20 rounded bg-muted" />
-      <div className={cn('mt-3 rounded bg-muted', compact ? 'h-7 w-12' : 'h-8 w-16')} />
-    </div>
-  )
-}
-
 function ClassAnalyticsLoading() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <AnalyticsLoadingPlaceholder compact />
-        <AnalyticsLoadingPlaceholder compact />
-        <AnalyticsLoadingPlaceholder compact />
-        <AnalyticsLoadingPlaceholder compact />
+        <AnalyticsMetricPlaceholder compact />
+        <AnalyticsMetricPlaceholder compact />
+        <AnalyticsMetricPlaceholder compact />
+        <AnalyticsMetricPlaceholder compact />
         <div className="hidden lg:contents">
-          <AnalyticsLoadingPlaceholder />
-          <AnalyticsLoadingPlaceholder />
-          <AnalyticsLoadingPlaceholder />
-          <AnalyticsLoadingPlaceholder />
+          <AnalyticsMetricPlaceholder />
+          <AnalyticsMetricPlaceholder />
+          <AnalyticsMetricPlaceholder />
+          <AnalyticsMetricPlaceholder />
         </div>
       </div>
       <div className="rounded-lg border bg-card lg:hidden">
