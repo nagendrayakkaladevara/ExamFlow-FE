@@ -19,7 +19,7 @@ import {
   scaleIn,
   staggerContainer,
 } from '@/lib/motion'
-import { isAccessDeniedError } from '@/lib/errors'
+import { isMissingResourceError } from '@/lib/errors'
 
 function CircularDetailLoading() {
   return <LoadingState minHeightClassName="min-h-64" />
@@ -43,7 +43,7 @@ export function CircularDetailPage() {
   const panelTransition = motionTransition(reducedMotion ?? false, 0.3)
 
   if (query.isLoading) return <CircularDetailLoading />
-  if (query.error && isAccessDeniedError(query.error)) {
+  if (query.error && isMissingResourceError(query.error)) {
     return (
       <EmptyState
         title="Page not found"

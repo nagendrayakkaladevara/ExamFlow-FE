@@ -52,3 +52,11 @@ export function isApiError(value: unknown): value is ApiError {
 export function isAccessDeniedError(error: unknown): boolean {
   return isApiError(error) && (error.status === 403 || error.status === 404)
 }
+
+/** True when a detail-page fetch failed because the resource is missing or unreachable. */
+export function isMissingResourceError(error: unknown): boolean {
+  if (!isApiError(error)) return false
+  if (error.status === 403 || error.status === 404) return true
+  // Malformed route IDs (e.g. invalid UUID) surface as param validation errors.
+  return error.status === 400 && error.code === 'VALIDATION_ERROR'
+}

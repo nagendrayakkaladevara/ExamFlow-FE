@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { QueryError } from '@/components/feedback/EmptyState'
+import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,7 @@ import { ALLOWED_IMAGE_TYPES, UPLOAD_MAX_SIZE_BYTES } from '@/config/constants'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useRoleBasePath } from '@/hooks/useRolePath'
-import { isApiError } from '@/lib/errors'
+import { isApiError, isMissingResourceError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 
 const formFooterClassName =
@@ -115,6 +115,19 @@ export function CircularFormPage() {
 
   if (isEdit && circularQuery.isLoading) return <LoadingState minHeightClassName="min-h-64" />
   if (isEdit && circularQuery.error) {
+    if (isMissingResourceError(circularQuery.error)) {
+      return (
+        <EmptyState
+          title="Circular not found"
+          description="This circular does not exist or you do not have access to it."
+          action={
+            <Button variant="outline" asChild>
+              <Link to={`${basePath}/circulars`}>Back to circulars</Link>
+            </Button>
+          }
+        />
+      )
+    }
     return <QueryError error={circularQuery.error} onRetry={() => circularQuery.refetch()} />
   }
 
