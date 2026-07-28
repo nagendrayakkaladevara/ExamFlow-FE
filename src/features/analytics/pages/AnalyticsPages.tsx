@@ -27,6 +27,8 @@ import { AdminTrendChart } from '@/features/analytics/components/AdminTrendChart
 import { AlertsList } from '@/features/analytics/components/AlertsList'
 import { ClassAnalyticsGrid } from '@/features/analytics/components/ClassAnalyticsGrid'
 import { ClassAssignmentChart } from '@/features/analytics/components/ClassAssignmentChart'
+import { LecturerClassesList } from '@/features/analytics/components/LecturerClassesList'
+import { LecturerSummaryMetrics } from '@/features/analytics/components/LecturerSummaryMetrics'
 import { DateRangeFilter } from '@/features/analytics/components/DateRangeFilter'
 import { ExportCsvButton } from '@/features/analytics/components/ExportCsvButton'
 import { PerformanceTrendChart } from '@/features/analytics/components/PerformanceTrendChart'
@@ -34,7 +36,7 @@ import { WeakTopicsPanel } from '@/features/analytics/components/WeakTopicsPanel
 import { analyticsApi } from '@/features/analytics/api'
 import { useDateRangeFilter } from '@/features/analytics/hooks/useDateRangeFilter'
 import { useAssignmentSummaries } from '@/features/analytics/hooks/useAssignmentSummaries'
-import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
+import { MetricCard } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
 import { formatDateTime, formatPercent } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
@@ -221,54 +223,16 @@ function LecturerAnalyticsPage() {
         onCustomToChange={dateRange.setCustomTo}
       />
 
-      {summaryQuery.isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCardLoading />
-          <MetricCardLoading />
-          <MetricCardLoading />
-          <MetricCardLoading />
-        </div>
-      ) : summaryQuery.data ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            label="Unique students"
-            value={summaryQuery.data.totals.uniqueStudentCount}
-          />
-          <MetricCard label="Assignments" value={summaryQuery.data.totals.assignmentCount} />
-          <MetricCard
-            label="Completion"
-            value={formatPercent(summaryQuery.data.totals.completionRate)}
-          />
-          <MetricCard
-            label="Average score"
-            value={
-              summaryQuery.data.totals.averageScore != null
-                ? `${summaryQuery.data.totals.averageScore}%`
-                : '—'
-            }
-          />
-        </div>
-      ) : null}
+      <LecturerSummaryMetrics
+        totals={summaryQuery.data?.totals}
+        isLoading={summaryQuery.isLoading}
+      />
 
       {summaryQuery.data && summaryQuery.data.classes.length > 0 ? (
-        <section className="space-y-4">
-          <h2 className="text-base font-semibold">Your classes</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {summaryQuery.data.classes.map((cls) => (
-              <Link
-                key={cls.classId}
-                to={`/lecturer/analytics?classId=${cls.classId}`}
-                className="rounded-lg border bg-card p-6 transition-colors hover:bg-muted/30"
-              >
-                <p className="font-semibold">{cls.className}</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {cls.studentCount} students · {cls.assignmentCount} assignments ·{' '}
-                  {formatPercent(cls.completionRate)} completion
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
+        <LecturerClassesList
+          classes={summaryQuery.data.classes}
+          activeClassId={activeClassId}
+        />
       ) : null}
 
       {classes.length > 0 ? (
