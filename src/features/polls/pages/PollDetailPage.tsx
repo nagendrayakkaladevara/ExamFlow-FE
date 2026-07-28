@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { RefreshButton } from '@/components/feedback/RefreshButton'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -41,7 +42,11 @@ export function PollDetailPage() {
     queryKey: [...queryKeys.polls.all, id],
     queryFn: () => pollsApi.get(id),
     enabled: Boolean(id),
-    refetchInterval: ACTIVE_PAGE_POLL_INTERVAL_MS,
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (data && isPollExpired(data)) return false
+      return ACTIVE_PAGE_POLL_INTERVAL_MS
+    },
   })
 
   const poll = pollQuery.data
@@ -55,7 +60,7 @@ export function PollDetailPage() {
     queryFn: () => pollsApi.results(id),
     enabled: Boolean(id) && showResults,
     retry: false,
-    refetchInterval: showResults ? ACTIVE_PAGE_POLL_INTERVAL_MS : false,
+    refetchInterval: showResults && !expired ? ACTIVE_PAGE_POLL_INTERVAL_MS : false,
   })
 
   const voteMutation = useMutation({
@@ -103,14 +108,42 @@ export function PollDetailPage() {
         actions={
           <>
             {canEdit ? (
-              <Button variant="outline" asChild>
-                <Link to={`${basePath}/polls/${id}/edit`}>Edit</Link>
-              </Button>
+              expired ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button variant="outline" disabled>
+                        Edit
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>The poll expired</TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button variant="outline" asChild>
+                  <Link to={`${basePath}/polls/${id}/edit`}>Edit</Link>
+                </Button>
+              )
             ) : null}
-            <RefreshButton
-              onClick={handleRefresh}
-              isRefreshing={pollQuery.isFetching || resultsQuery.isFetching}
-            />
+            {expired ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <RefreshButton
+                      onClick={handleRefresh}
+                      isRefreshing={pollQuery.isFetching || resultsQuery.isFetching}
+                      disabled
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>The poll expired</TooltipContent>
+              </Tooltip>
+            ) : (
+              <RefreshButton
+                onClick={handleRefresh}
+                isRefreshing={pollQuery.isFetching || resultsQuery.isFetching}
+              />
+            )}
             <Button variant="outline" asChild>
               <Link to={`${basePath}/polls`}>Back</Link>
             </Button>
