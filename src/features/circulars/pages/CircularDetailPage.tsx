@@ -19,7 +19,12 @@ import {
   scaleIn,
   staggerContainer,
 } from '@/lib/motion'
-import { isAccessDeniedError } from '@/lib/errors'
+import {
+  isForbiddenResourceError,
+  isNotFoundResourceError,
+  RESOURCE_FORBIDDEN_MESSAGE,
+  RESOURCE_NOT_FOUND_MESSAGE,
+} from '@/lib/errors'
 
 function CircularDetailLoading() {
   return <LoadingState minHeightClassName="min-h-64" />
@@ -43,13 +48,11 @@ export function CircularDetailPage() {
   const panelTransition = motionTransition(reducedMotion ?? false, 0.3)
 
   if (query.isLoading) return <CircularDetailLoading />
-  if (query.error && isAccessDeniedError(query.error)) {
-    return (
-      <EmptyState
-        title="Page not found"
-        description="The page you are looking for does not exist."
-      />
-    )
+  if (query.error && isForbiddenResourceError(query.error)) {
+    return <EmptyState title={RESOURCE_FORBIDDEN_MESSAGE} />
+  }
+  if (query.error && isNotFoundResourceError(query.error)) {
+    return <EmptyState title={RESOURCE_NOT_FOUND_MESSAGE} />
   }
   if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
   if (!query.data) return null
