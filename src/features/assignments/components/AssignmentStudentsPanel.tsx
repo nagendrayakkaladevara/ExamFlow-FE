@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from 'lucide-react'
 import { EmptyState, QueryError } from '@/components/feedback/EmptyState'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LoadingState } from '@/components/feedback/LoadingSpinner'
@@ -16,16 +15,12 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAssignmentRoster } from '@/features/analytics/hooks/useAssignmentRoster'
 import { formatStudentLabel } from '@/features/analytics/utils/student-label'
-import {
-  getRosterStatusLabel,
-  isCompletedStatus,
-} from '@/features/analytics/utils/roster-status'
-import { MetricCard } from '@/features/dashboard/components/MetricCard'
-import { formatDateTime, formatPercent } from '@/lib/format'
+import { RosterStatusBadge } from '@/features/assignments/components/RosterStatusBadge'
+import { RosterSummaryMetrics } from '@/features/assignments/components/RosterSummaryMetrics'
+import { formatDateTime } from '@/lib/format'
 import type {
   AssignmentRosterRow,
   AssignmentRosterStatus,
-  AssignmentRosterSubmissionStatus,
   LecturerAssignmentAnalytics,
 } from '@/types/domain'
 
@@ -37,41 +32,6 @@ type RosterSort = 'score' | 'name' | 'submittedAt'
 interface AssignmentStudentsPanelProps {
   assignmentId: string
   summary?: Pick<LecturerAssignmentAnalytics, 'enrolled' | 'submitted' | 'completionRate'>
-}
-
-function RosterStatusBadge({ status }: { status: AssignmentRosterSubmissionStatus }) {
-  const label = getRosterStatusLabel(status)
-
-  if (isCompletedStatus(status)) {
-    return (
-      <Badge
-        variant="secondary"
-        className="border-emerald-200 bg-emerald-50 font-medium text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300"
-      >
-        {label}
-      </Badge>
-    )
-  }
-
-  if (status === 'IN_PROGRESS') {
-    return (
-      <Badge
-        variant="secondary"
-        className="border-sky-200 bg-sky-50 font-medium text-sky-600 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300"
-      >
-        {label}
-      </Badge>
-    )
-  }
-
-  return (
-    <Badge
-      variant="secondary"
-      className="border-amber-200 bg-amber-50 font-medium text-amber-600 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
-    >
-      {label}
-    </Badge>
-  )
 }
 
 function SortableHeader({
@@ -256,15 +216,12 @@ export function AssignmentStudentsPanel({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <MetricCard label="Enrolled" value={headerStats.enrolled} />
-        <MetricCard label="Completed" value={headerStats.submitted} />
-        <MetricCard
-          label="Pending"
-          value={pendingCount}
-          description={`${formatPercent(headerStats.completionRate)} completion rate`}
-        />
-      </div>
+      <RosterSummaryMetrics
+        enrolled={headerStats.enrolled}
+        submitted={headerStats.submitted}
+        completionRate={headerStats.completionRate}
+        isLoading={summaryQuery.isLoading && !summary}
+      />
 
       <Tabs
         value={activeTab}

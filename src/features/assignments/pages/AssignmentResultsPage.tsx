@@ -5,14 +5,13 @@ import { QueryError } from '@/components/feedback/EmptyState'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AssignmentResultsMetrics } from '@/features/assignments/components/AssignmentResultsMetrics'
 import { AssignmentStudentsPanel } from '@/features/assignments/components/AssignmentStudentsPanel'
 import { assignmentsApi } from '@/features/assignments/api'
 import { analyticsApi } from '@/features/analytics/api'
 import { AssignmentExportButton } from '@/features/analytics/components/ExportCsvButton'
 import { QuestionBreakdownTable } from '@/features/analytics/components/QuestionBreakdownTable'
-import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
-import { formatDateTime, formatPercent } from '@/lib/format'
 
 export function AssignmentResultsPage() {
   const { id = '' } = useParams()
@@ -57,30 +56,15 @@ export function AssignmentResultsPage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {summaryQuery.isLoading ? (
-          <>
-            <MetricCardLoading />
-            <MetricCardLoading />
-            <MetricCardLoading />
-            <MetricCardLoading />
-          </>
-        ) : analytics ? (
-          <>
-            <MetricCard label="Enrolled" value={analytics.enrolled} />
-            <MetricCard label="Submitted" value={analytics.submitted} />
-            <MetricCard
-              label="Completion"
-              value={formatPercent(analytics.completionRate)}
-            />
-            <MetricCard
-              label="Closes"
-              value={formatDateTime(assignment.endAt)}
-              description="Assignment deadline"
-            />
-          </>
-        ) : null}
-      </div>
+      {summaryQuery.isLoading || analytics ? (
+        <AssignmentResultsMetrics
+          enrolled={analytics?.enrolled ?? 0}
+          submitted={analytics?.submitted ?? 0}
+          completionRate={analytics?.completionRate ?? 0}
+          endAt={assignment.endAt}
+          isLoading={summaryQuery.isLoading}
+        />
+      ) : null}
 
       <Tabs defaultValue="students" className="space-y-6">
         <TabsList>

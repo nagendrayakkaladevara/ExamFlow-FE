@@ -18,6 +18,7 @@ import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { AssignmentTimingBadge, SubmissionStatusBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
 import { DashboardListItem, DashboardPanel } from '@/features/dashboard/components/DashboardPanel'
 import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
+import { LecturerSummaryMetrics } from '@/features/analytics/components/LecturerSummaryMetrics'
 import { QuickActions } from '@/features/dashboard/components/QuickActions'
 import {
   formatActivityTimestamp,
@@ -215,47 +216,18 @@ function LecturerDashboard() {
 
   return (
     <>
-      {summaryQuery.isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCardLoading />
-          <MetricCardLoading />
-          <MetricCardLoading />
-          <MetricCardLoading />
-        </div>
-      ) : summaryQuery.data ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            label="Unique students"
-            value={summaryQuery.data.totals.uniqueStudentCount}
-            description={`Across ${summaryQuery.data.totals.classCount} classes`}
-          />
-          <MetricCard
-            label="Assignments"
-            value={summaryQuery.data.totals.assignmentCount}
-            description="Published assessments"
-          />
-          <MetricCard
-            label="Submissions"
-            value={summaryQuery.data.totals.completedSubmissions}
-            description="Completed"
-          />
-          <MetricCard
-            label="Completion rate"
-            value={formatPercent(summaryQuery.data.totals.completionRate)}
-            description={
-              summaryQuery.data.totals.averageScore != null
-                ? `Avg score ${summaryQuery.data.totals.averageScore}%`
-                : undefined
-            }
-          />
-        </div>
-      ) : (
+      <LecturerSummaryMetrics
+        totals={summaryQuery.data?.totals}
+        isLoading={summaryQuery.isLoading}
+      />
+
+      {!summaryQuery.isLoading && !summaryQuery.data ? (
         <div className="rounded-lg border bg-card p-6">
           <p className="text-sm text-muted-foreground">
             Assign yourself to a class to see performance metrics here.
           </p>
         </div>
-      )}
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
