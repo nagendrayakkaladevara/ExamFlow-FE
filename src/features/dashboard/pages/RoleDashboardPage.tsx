@@ -18,6 +18,7 @@ import { LoadingState } from '@/components/feedback/LoadingSpinner'
 import { AssignmentTimingBadge, SubmissionStatusBadge } from '@/features/dashboard/components/AssignmentStatusBadge'
 import { DashboardListItem, DashboardPanel } from '@/features/dashboard/components/DashboardPanel'
 import { MetricCard, MetricCardLoading } from '@/features/dashboard/components/MetricCard'
+import { AdminSummaryMetrics } from '@/features/analytics/components/AdminSummaryMetrics'
 import { LecturerSummaryMetrics } from '@/features/analytics/components/LecturerSummaryMetrics'
 import { QuickActions } from '@/features/dashboard/components/QuickActions'
 import {
@@ -33,7 +34,7 @@ import { circularsApi } from '@/features/circulars/api'
 import { formatCircularFeedMeta } from '@/features/circulars/circular-meta'
 import { pollsApi } from '@/features/polls/api'
 import { queryKeys } from '@/config/query-keys'
-import { formatDateTime, formatPercent } from '@/lib/format'
+import { formatDateTime } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { getRoleBasePath } from '@/config/navigation'
 
@@ -70,45 +71,7 @@ function AdminDashboard() {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {overviewQuery.isLoading ? (
-          <>
-            <MetricCardLoading />
-            <MetricCardLoading />
-            <MetricCardLoading />
-            <MetricCardLoading />
-            <MetricCardLoading />
-          </>
-        ) : overviewQuery.data ? (
-          <>
-            <MetricCard
-              label="Students"
-              value={overviewQuery.data.usersByRole.STUDENT ?? 0}
-              description="Enrolled accounts"
-            />
-            <MetricCard
-              label="Lecturers"
-              value={overviewQuery.data.usersByRole.LECTURER ?? 0}
-              description="Teaching staff"
-            />
-            <MetricCard
-              label="Active classes"
-              value={overviewQuery.data.activeClasses}
-              description="Currently running"
-            />
-            <MetricCard
-              label="Assignments"
-              value={overviewQuery.data.totalAssignments}
-              description={`${overviewQuery.data.completedSubmissions} submissions`}
-            />
-            <MetricCard
-              label="Average completion"
-              value={formatPercent(overviewQuery.data.averageCompletionRate)}
-              description="Institution-wide"
-            />
-          </>
-        ) : null}
-      </div>
+      <AdminSummaryMetrics data={overviewQuery.data} isLoading={overviewQuery.isLoading} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
