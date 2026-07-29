@@ -25,6 +25,7 @@ import {
 import { ActivityFeedList } from '@/features/analytics/components/ActivityFeedList'
 import { AdminTrendChart } from '@/features/analytics/components/AdminTrendChart'
 import { AlertsList } from '@/features/analytics/components/AlertsList'
+import { AdminSummaryMetrics } from '@/features/analytics/components/AdminSummaryMetrics'
 import { ClassAnalyticsGrid } from '@/features/analytics/components/ClassAnalyticsGrid'
 import { ClassAssignmentChart } from '@/features/analytics/components/ClassAssignmentChart'
 import { LecturerClassesList } from '@/features/analytics/components/LecturerClassesList'
@@ -38,7 +39,7 @@ import { useDateRangeFilter } from '@/features/analytics/hooks/useDateRangeFilte
 import { useAssignmentSummaries } from '@/features/analytics/hooks/useAssignmentSummaries'
 import { MetricCard } from '@/features/dashboard/components/MetricCard'
 import { queryKeys } from '@/config/query-keys'
-import { formatDateTime, formatPercent } from '@/lib/format'
+import { formatDateTime } from '@/lib/format'
 import { useAuthStore } from '@/features/auth/store'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { assignmentsApi } from '@/features/assignments/api'
@@ -490,28 +491,7 @@ function AdminAnalyticsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {overviewQuery.data ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard
-                label="Students"
-                value={overviewQuery.data.usersByRole.STUDENT ?? 0}
-              />
-              <MetricCard
-                label="Lecturers"
-                value={overviewQuery.data.usersByRole.LECTURER ?? 0}
-              />
-              <MetricCard label="Active classes" value={overviewQuery.data.activeClasses} />
-              <MetricCard label="Assignments" value={overviewQuery.data.totalAssignments} />
-              <MetricCard
-                label="Completed submissions"
-                value={overviewQuery.data.completedSubmissions}
-              />
-              <MetricCard
-                label="Average completion"
-                value={formatPercent(overviewQuery.data.averageCompletionRate)}
-              />
-            </div>
-          ) : null}
+          <AdminSummaryMetrics data={overviewQuery.data} variant="analytics" />
         </TabsContent>
 
         <TabsContent value="activity">
