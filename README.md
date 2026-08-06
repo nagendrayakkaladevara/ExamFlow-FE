@@ -1,3 +1,13 @@
+# ExamFlow Frontend
+
+College examination and assessment SPA (`examflow-frontend`) — Vite · React · TypeScript · Tailwind · shadcn/ui.
+
+**Documentation:** see [`docs/README.md`](./docs/README.md) for production-style **Developer** and **Application User** guides (multi-page).
+
+Also in-repo: [`ARCHITECTURE.md`](./ARCHITECTURE.md) · [`design.md`](./design.md) · [`API_DOCS.md`](./API_DOCS.md)
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
