@@ -49,6 +49,36 @@ function ClassDetailLoading() {
   return <LoadingState minHeightClassName="min-h-96" />
 }
 
+function AdminClassMetricStat({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number
+}) {
+  return (
+    <div className="px-4 py-4">
+      <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</dd>
+    </div>
+  )
+}
+
+function AdminClassMetricsBentoLoading() {
+  return (
+    <section className="rounded-lg border bg-card sm:hidden">
+      <div className="grid grid-cols-2 divide-x divide-y divide-border">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="space-y-3 px-4 py-4">
+            <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+            <div className="h-7 w-10 animate-pulse rounded bg-muted" />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function useClassData(id: string, isAdmin: boolean) {
   const { classes, isLoading: listLoading } = useClassOptions()
   const listClass = classes.find((cls) => cls.id === id)
@@ -251,7 +281,34 @@ export function ClassDetailPage() {
 
       {isAdmin && adminAnalyticsQuery.data ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Mobile: unified bento panel */}
+          <section className="rounded-lg border bg-card sm:hidden">
+            <dl className="grid grid-cols-2 divide-x divide-y divide-border">
+              <AdminClassMetricStat
+                label="Students"
+                value={adminAnalyticsQuery.data.studentCount}
+              />
+              <AdminClassMetricStat
+                label="Assignments"
+                value={adminAnalyticsQuery.data.assignmentCount}
+              />
+              <AdminClassMetricStat
+                label="Completion"
+                value={formatPercent(adminAnalyticsQuery.data.completionRate)}
+              />
+              <AdminClassMetricStat
+                label="Average score"
+                value={
+                  adminAnalyticsQuery.data.averageScore != null
+                    ? `${adminAnalyticsQuery.data.averageScore}%`
+                    : '—'
+                }
+              />
+            </dl>
+          </section>
+
+          {/* Tablet / desktop: metric cards */}
+          <div className="hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               label="Students"
               value={adminAnalyticsQuery.data.studentCount}
@@ -313,12 +370,15 @@ export function ClassDetailPage() {
           ) : null}
         </div>
       ) : isAdmin && adminAnalyticsQuery.isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCardLoading />
-          <MetricCardLoading />
-          <MetricCardLoading />
-          <MetricCardLoading />
-        </div>
+        <>
+          <AdminClassMetricsBentoLoading />
+          <div className="hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
+            <MetricCardLoading />
+          </div>
+        </>
       ) : null}
 
       <Tabs defaultValue="overview" className="space-y-6">
